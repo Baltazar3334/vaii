@@ -2,15 +2,26 @@
 // Allow requests from your Vue app (CORS)
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Content-Type: application/json");
 
-// Include the database connection
-require 'db.php';
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
-// Get the JSON input from Vue
+try {
+    // This brings in the $pdo variable ready to use
+    require 'db.php';
+    /** @var PDO $pdo */ // <-- Add this line to silence the warning
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
+// Get input
 $data = json_decode(file_get_contents("php://input"), true);
 
-// Check if we have the required fields
 if (!isset($data['email']) || !isset($data['password'])) {
     echo json_encode(['success' => false, 'message' => 'Missing credentials']);
     exit;
@@ -20,16 +31,12 @@ $email = $data['email'];
 $password = $data['password'];
 
 try {
-    // 1. Prepare the SQL statement (Prevents SQL Injection)
+    // Use $pdo directly (it comes from db.php)
     $stmt = $pdo->prepare("SELECT id, username, password FROM users WHERE email = :email");
-
-    // 2. Execute with the user's email
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch();
 
-    // 3. Verify the user exists AND the password is correct
     if ($user && password_verify($password, $user['password'])) {
-        // Success!
         echo json_encode([
             'success' => true,
             'user' => [
@@ -38,7 +45,6 @@ try {
             ]
         ]);
     } else {
-        // Invalid login
         echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
     }
 

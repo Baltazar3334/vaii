@@ -12,6 +12,22 @@ services:
       - "3306:3306"              # Exposes the port to your computer
     volumes:
       - db_data:/var/lib/mysql   # Saves data even if you delete the container
+      # UPDATE THIS LINE: remove 'src/'
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # --- NEW: PHP Backend Service ---
+  php_server:
+    image: php:8.2-apache
+    container_name: quiz_php
+    ports:
+      - "8000:80"  # Maps port 8000 on your PC to port 80 inside Docker
+    volumes:
+      - ./:/var/www/html  # Mounts your whole project into the web server
+    depends_on:
+      - mysql_db
+    # Install the MySQL extension for PHP automatically
+    command: >
+      sh -c "docker-php-ext-install pdo pdo_mysql && apache2-foreground"
 
 volumes:
   db_data:

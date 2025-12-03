@@ -16,6 +16,7 @@ const handleSubmit = async () => {
   if (isLogin.value) {
     // --- LOGIN LOGIC ---
     try {
+      // Ensure this path is correct (no /src/)
       const response = await fetch('http://localhost:8000/backend/login.php', {
         method: 'POST',
         headers: {
