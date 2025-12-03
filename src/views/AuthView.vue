@@ -1,8 +1,10 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router' // Import router for redirection
+import { ref, inject } from 'vue' // Import inject
+import { useRouter } from 'vue-router'
 
-const router = useRouter() // Initialize router
+const router = useRouter()
+const updateUser = inject('updateUser') // Inject the function from App.vue
+
 const isLogin = ref(false)
 
 const username = ref('')
@@ -13,40 +15,43 @@ const errorMessage = ref('') // State for error messages
 const handleSubmit = async () => {
   errorMessage.value = '' // Reset error
 
-  if (isLogin.value) {
-    // --- LOGIN LOGIC ---
-    try {
-      // Ensure this path is correct (no /src/)
-      const response = await fetch('http://localhost:8000/backend/login.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.value,
-          password: password.value
-        })
-      })
+  // Prepare the payload based on whether we are logging in or registering
+  const payload = {
+    action: isLogin.value ? 'login' : 'register',
+    email: email.value,
+    password: password.value
+  }
 
-      const result = await response.json()
+  // Add username only if registering
+  if (!isLogin.value) {
+    payload.username = username.value
+  }
 
-      if (result.success) {
-        console.log('Login successful', result.user)
-        // Save user info (e.g., to localStorage)
-        localStorage.setItem('user', JSON.stringify(result.user))
-        // Redirect to home or profile
-        router.push('/profile')
-      } else {
-        errorMessage.value = result.message
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      errorMessage.value = 'Server connection failed'
+  try {
+    const response = await fetch('http://localhost:8000/backend/login.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      console.log('Operation successful', result.user)
+      localStorage.setItem('user', JSON.stringify(result.user))
+      
+      // Notify App.vue to update the menu
+      if (updateUser) updateUser()
+
+      router.push('/profile')
+    } else {
+      errorMessage.value = result.message
     }
-
-  } else {
-    // --- REGISTRATION LOGIC WOULD GO HERE ---
-    console.log('Registrujem:', { username: username.value, email: email.value, password: password.value })
+  } catch (error) {
+    console.error('Error:', error)
+    errorMessage.value = 'Server connection failed'
   }
 }
 </script>

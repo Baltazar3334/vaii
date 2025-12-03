@@ -1,10 +1,40 @@
 <script setup>
-import { ref } from 'vue' // Pridame ref
-import { RouterLink, RouterView } from 'vue-router'
-import QuizCreatorModal from '@/components/quiz/QuizCreatorModal.vue' // Import modalu
+import { ref, onMounted, provide } from 'vue'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+import QuizCreatorModal from '@/components/quiz/QuizCreatorModal.vue'
 
-// Stav pre zobrazenie modalu
+const router = useRouter()
 const showCreateModal = ref(false)
+const currentUser = ref(null)
+
+// Function to check if user is logged in
+const checkUser = () => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      currentUser.value = JSON.parse(userStr)
+    } catch (e) {
+      currentUser.value = null
+    }
+  } else {
+    currentUser.value = null
+  }
+}
+
+// Logout function
+const handleLogout = () => {
+  localStorage.removeItem('user')
+  currentUser.value = null
+  router.push('/')
+}
+
+// Check user on mount
+onMounted(() => {
+  checkUser()
+})
+
+// Provide this function to children so AuthView can call it after login
+provide('updateUser', checkUser)
 </script>
 
 <template>
@@ -12,18 +42,26 @@ const showCreateModal = ref(false)
     <div class="wrapper">
       <nav>
         <RouterLink to="/">Home</RouterLink>
-        <!-- Zmena z RouterLink na <a> s click eventom -->
-        <a href="#" @click.prevent="showCreateModal = true">Create Quiz</a>
+        
+        <!-- Show Create Quiz only if logged in -->
+        <a v-if="currentUser" href="#" @click.prevent="showCreateModal = true">Create Quiz</a>
+        
         <RouterLink to="/play">Play Quiz</RouterLink>
-        <RouterLink to="/profile">Profile</RouterLink>
-        <RouterLink to="/login" style="color: #8b5cf6;">Login</RouterLink>
+        
+        <!-- Show Profile only if logged in -->
+        <RouterLink v-if="currentUser" to="/profile">Profile</RouterLink>
+        
+        <!-- Show Login only if NOT logged in -->
+        <RouterLink v-if="!currentUser" to="/login" style="color: #8b5cf6;">Login</RouterLink>
+        
+        <!-- Show Logout if logged in -->
+        <a v-else href="#" @click.prevent="handleLogout" style="color: #ef4444;">Logout ({{ currentUser.username }})</a>
       </nav>
     </div>
   </header>
 
   <RouterView />
 
-  <!-- Modal component - zobrazí sa len ak je showCreateModal true -->
   <QuizCreatorModal
       v-if="showCreateModal"
       @close="showCreateModal = false"
@@ -31,6 +69,7 @@ const showCreateModal = ref(false)
 </template>
 
 <style scoped>
+/* ... existing styles ... */
 header {
   line-height: 1.5;
   max-height: 100vh;

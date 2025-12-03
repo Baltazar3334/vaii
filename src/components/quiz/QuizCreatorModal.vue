@@ -66,27 +66,55 @@ const handleSaveClick = () => {
   }
 }
 
-// Toto sa zavolá až po potvrdení v malom okne
-const confirmSave = () => {
-  // Vytvorenie štruktúry pre databázu
-  const quizData = {
-    title: quizTitle.value,
-    description: quizDescription.value,
-    questions: questions.value.map(q => ({
-      text: q.text,
-      options: q.options, // Pole stringov
-      correctAnswer: q.correctAnswer // Index (integer)
-    }))
-  }
+    // Toto sa zavolá až po potvrdení v malom okne
+    const confirmSave = async () => {
+      // Retrieve user from local storage to get ID
+      const userStr = localStorage.getItem('user')
+      if (!userStr) {
+        alert("You must be logged in to save a quiz.")
+        return
+      }
+      const user = JSON.parse(userStr)
 
-  console.log("Pripravené dáta pre DB:", JSON.stringify(quizData, null, 2))
+      // Vytvorenie štruktúry pre databázu
+      const quizData = {
+        user_id: user.id, // Add User ID
+        title: quizTitle.value,
+        description: quizDescription.value,
+        questions: questions.value.map(q => ({
+          text: q.text,
+          options: q.options,
+          correctAnswer: q.correctAnswer
+        }))
+      }
 
-  // Zavrieme confirm modal aj hlavný modal
-  showConfirmModal.value = false
-  emit('close')
-}
+      try {
+        const response = await fetch('http://localhost:8000/backend/create_quiz.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(quizData)
+        })
 
-const handleCancel = () => {
+        const result = await response.json()
+
+        if (result.success) {
+          console.log("Quiz saved!", result)
+          // Zavrieme confirm modal aj hlavný modal
+          showConfirmModal.value = false
+          emit('close')
+          // Optional: Emit event to refresh quiz list in parent
+        } else {
+          alert("Error saving quiz: " + result.message)
+        }
+      } catch (error) {
+        console.error("Network error:", error)
+        alert("Failed to connect to server.")
+      }
+    }
+
+    const handleCancel = () => {
   emit('close')
 }
 </script>
