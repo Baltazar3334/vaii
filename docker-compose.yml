@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  mysql_db:
+    image: mysql:8.0
+    container_name: quiz_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root  # The password you will use in the IDE
+      MYSQL_DATABASE: quiz_app   # Automatically creates your database
+    ports:
+      - "3306:3306"              # Exposes the port to your computer
+    volumes:
+      - db_data:/var/lib/mysql   # Saves data even if you delete the container
+
+volumes:
+  db_data:
