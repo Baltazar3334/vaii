@@ -22,8 +22,15 @@ const isLoading = ref(true)
 const showDeleteModal = ref(false)
 const quizToDelete = ref(null)
 
+// State for Edit Modal
+const showEditModal = ref(false)
+const editForm = ref({
+  id: null,
+  title: '',
+  description: ''
+})
+
 const fetchUserQuizzes = async (userId) => {
-  // ... existing fetch logic ...
   try {
     const response = await fetch(`http://localhost:8000/backend/get_user_quizzes.php?user_id=${userId}`)
     const result = await response.json()
@@ -41,20 +48,16 @@ const fetchUserQuizzes = async (userId) => {
 }
 
 // --- DELETE LOGIC ---
-
-// Open modal and set the quiz target
 const confirmDelete = (quiz) => {
   quizToDelete.value = quiz
   showDeleteModal.value = true
 }
 
-// Cancel deletion
 const cancelDelete = () => {
   quizToDelete.value = null
   showDeleteModal.value = false
 }
 
-// Perform deletion
 const handleDelete = async () => {
   if (!quizToDelete.value) return
 
@@ -73,9 +76,7 @@ const handleDelete = async () => {
     const result = await response.json()
 
     if (result.success) {
-      // Remove from local list
       userQuizzes.value = userQuizzes.value.filter(q => q.id !== quizToDelete.value.id)
-      // Update stats
       user.value.stats.created = userQuizzes.value.length
       user.value.stats.questions -= parseInt(quizToDelete.value.question_count || 0)
       
@@ -90,8 +91,55 @@ const handleDelete = async () => {
   }
 }
 
+// --- EDIT LOGIC ---
+const openEditModal = (quiz) => {
+  editForm.value = {
+    id: quiz.id,
+    title: quiz.title,
+    description: quiz.description || ''
+  }
+  showEditModal.value = true
+}
+
+const handleUpdate = async () => {
+  if (!editForm.value.title.trim()) {
+    alert("Title cannot be empty")
+    return
+  }
+
+  try {
+    const response = await fetch('http://localhost:8000/backend/update_quiz.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        quiz_id: editForm.value.id,
+        user_id: user.value.id,
+        title: editForm.value.title,
+        description: editForm.value.description
+      })
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      const quizIndex = userQuizzes.value.findIndex(q => q.id === editForm.value.id)
+      if (quizIndex !== -1) {
+        userQuizzes.value[quizIndex].title = editForm.value.title
+        userQuizzes.value[quizIndex].description = editForm.value.description
+      }
+      showEditModal.value = false
+    } else {
+      alert("Error updating quiz: " + result.message)
+    }
+  } catch (error) {
+    console.error("Update failed:", error)
+    alert("Failed to update quiz")
+  }
+}
+
 onMounted(() => {
-  // ... existing onMounted logic ...
   const userStr = localStorage.getItem('user')
   if (userStr) {
     const userData = JSON.parse(userStr)
@@ -107,7 +155,7 @@ onMounted(() => {
 
 <template>
   <div class="profile-container">
-    <!-- ... Header Section (unchanged) ... -->
+    <!-- Header Section -->
     <div class="profile-header">
       <div class="header-wrapper">
         <div class="user-welcome">
@@ -150,17 +198,17 @@ onMounted(() => {
 
     <!-- Main Content Section -->
     <div class="content-container">
-      <!-- ... Section Header (unchanged) ... -->
       <div class="section-header">
         <h2>Your Quizzes</h2>
         <p>Create, edit, and manage your quiz collection</p>
       </div>
 
-      <!-- Loading & Empty States (unchanged) -->
+      <!-- Loading State -->
       <div v-if="isLoading" class="loading-state">
         <p>Loading your quizzes...</p>
       </div>
 
+      <!-- Empty State -->
       <div v-else-if="userQuizzes.length === 0" class="empty-state">
         <div class="trophy-icon">🏆</div>
         <h3>No quizzes yet</h3>
@@ -171,10 +219,15 @@ onMounted(() => {
       <div v-else class="quiz-grid">
         <div v-for="quiz in userQuizzes" :key="quiz.id" class="quiz-card">
           
-          <!-- Delete Button (Absolute positioned) -->
-          <button class="delete-btn" @click="confirmDelete(quiz)" title="Delete Quiz">
-            ×
-          </button>
+          <!-- Action Buttons -->
+          <div class="actions-container">
+            <button class="action-btn edit-btn" @click="openEditModal(quiz)" title="Edit Quiz">
+              ✎
+            </button>
+            <button class="action-btn delete-btn" @click="confirmDelete(quiz)" title="Delete Quiz">
+              ×
+            </button>
+          </div>
 
           <div class="card-top">
             <h3>{{ quiz.title }}</h3>
@@ -186,7 +239,6 @@ onMounted(() => {
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- Delete Confirmation Modal -->
@@ -203,11 +255,32 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Edit Quiz Modal -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+      <div class="edit-card">
+        <h3>Edit Quiz</h3>
+        
+        <div class="form-group">
+          <label>Quiz Title</label>
+          <input v-model="editForm.title" type="text" placeholder="Enter title" />
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea v-model="editForm.description" rows="3" placeholder="Enter description"></textarea>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showEditModal = false">Cancel</button>
+          <button class="btn-save" @click="handleUpdate">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-/* ... existing styles ... */
 .profile-container {
   min-height: 100vh;
   background-color: #f9fafb;
@@ -367,7 +440,6 @@ onMounted(() => {
   font-size: 0.95rem;
 }
 
-/* Quiz Grid Styles */
 .quiz-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -375,7 +447,7 @@ onMounted(() => {
 }
 
 .quiz-card {
-  position: relative; /* Needed for delete button positioning */
+  position: relative;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -392,20 +464,24 @@ onMounted(() => {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* Delete Button Styles */
-.delete-btn {
+/* Action Buttons */
+.actions-container {
   position: absolute;
   top: 10px;
   right: 10px;
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn {
   background: transparent;
   border: none;
-  color: #9ca3af;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
   padding: 0;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -413,9 +489,24 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
+.delete-btn {
+  color: #9ca3af;
+  font-size: 1.5rem;
+}
+
 .delete-btn:hover {
   color: #ef4444;
   background-color: #fee2e2;
+}
+
+.edit-btn {
+  color: #9ca3af;
+  font-size: 1.1rem;
+}
+
+.edit-btn:hover {
+  color: #3b82f6;
+  background-color: #dbeafe;
 }
 
 .card-top h3 {
@@ -423,7 +514,7 @@ onMounted(() => {
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 0.5rem;
-  padding-right: 20px; /* Prevent text from overlapping delete btn */
+  padding-right: 60px; /* More space for buttons */
 }
 
 .description {
@@ -467,7 +558,7 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-/* Delete Modal Styles */
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -482,6 +573,70 @@ onMounted(() => {
   backdrop-filter: blur(3px);
 }
 
+/* Edit Modal */
+.edit-card {
+  background: white;
+  width: 90%;
+  max-width: 500px;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: popIn 0.2s ease-out;
+}
+
+.edit-card h3 {
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.btn-save {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  color: white;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-save:hover {
+  opacity: 0.9;
+}
+
+/* Delete Modal */
 .delete-card {
   background: white;
   width: 90%;
