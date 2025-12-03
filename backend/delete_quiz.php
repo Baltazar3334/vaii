@@ -28,7 +28,7 @@ $quizId = $data['quiz_id'];
 $userId = $data['user_id'];
 
 try {
-    // 1. Verify ownership (Security check)
+    // 1. Verify ownership
     $checkStmt = $pdo->prepare("SELECT id FROM quizzes WHERE id = :quiz_id AND user_id = :user_id");
     $checkStmt->execute(['quiz_id' => $quizId, 'user_id' => $userId]);
 
@@ -37,7 +37,7 @@ try {
         exit;
     }
 
-    // 2. Delete the quiz (Cascading delete will handle questions/options)
+    // 2. Delete the quiz
     $deleteStmt = $pdo->prepare("DELETE FROM quizzes WHERE id = :quiz_id");
     if ($deleteStmt->execute(['quiz_id' => $quizId])) {
         echo json_encode(['success' => true, 'message' => 'Quiz deleted successfully']);

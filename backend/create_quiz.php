@@ -26,7 +26,7 @@ if (!isset($data['user_id']) || !isset($data['title']) || !isset($data['question
 }
 
 try {
-    // Start Transaction (All or Nothing)
+    // Start Transaction
     $pdo->beginTransaction();
 
     // 1. Insert Quiz

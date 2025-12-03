@@ -27,7 +27,6 @@ $userId = $_GET['user_id'];
 
 try {
     // Fetch quizzes for this user
-    // We also count the number of questions for each quiz using a subquery
     $stmt = $pdo->prepare("
         SELECT 
             q.id, 

@@ -1,9 +1,9 @@
 <?php
-// Configuration for your Docker database
-$host = 'mysql_db'; // UPDATED: Use the service name from docker-compose
-$db   = 'quiz_app';  // The name defined in docker-compose
-$user = 'root';      // The user defined in docker-compose
-$pass = 'root';      // The password defined in docker-compose
+
+$host = 'mysql_db';
+$db   = 'quiz_app';
+$user = 'root';
+$pass = 'root';
 $port = "3306";
 $charset = 'utf8mb4';
 

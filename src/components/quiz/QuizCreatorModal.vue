@@ -6,7 +6,6 @@ const emit = defineEmits(['close'])
 const quizTitle = ref('')
 const quizDescription = ref('')
 const questions = ref([])
-// Stavy pre validáciu a potvrdzovacie okno
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
 
@@ -14,10 +13,9 @@ const handleAddQuestion = () => {
   questions.value.push({
     id: Date.now(),
     text: '',
-    options: ['', '', '', ''], // Predpripravíme 4 možnosti
-    correctAnswer: 0 // Index správnej odpovede
+    options: ['', '', '', ''],
+    correctAnswer: 0
   })
-  // Zrušíme chybovú hlášku ak používateľ pridá otázku
   if (errorMessage.value) errorMessage.value = ''
 }
 
@@ -25,7 +23,6 @@ const removeQuestion = (index) => {
   questions.value.splice(index, 1)
 }
 
-// Funkcia na validáciu formulára
 const validateForm = () => {
   errorMessage.value = ''
 
@@ -59,16 +56,13 @@ const validateForm = () => {
   return true
 }
 
-// Toto sa zavolá po kliknutí na Save Quiz
 const handleSaveClick = () => {
   if (validateForm()) {
     showConfirmModal.value = true
   }
 }
 
-    // Toto sa zavolá až po potvrdení v malom okne
     const confirmSave = async () => {
-      // Retrieve user from local storage to get ID
       const userStr = localStorage.getItem('user')
       if (!userStr) {
         alert("You must be logged in to save a quiz.")
@@ -76,9 +70,8 @@ const handleSaveClick = () => {
       }
       const user = JSON.parse(userStr)
 
-      // Vytvorenie štruktúry pre databázu
       const quizData = {
-        user_id: user.id, // Add User ID
+        user_id: user.id,
         title: quizTitle.value,
         description: quizDescription.value,
         questions: questions.value.map(q => ({
@@ -101,10 +94,8 @@ const handleSaveClick = () => {
 
         if (result.success) {
           console.log("Quiz saved!", result)
-          // Zavrieme confirm modal aj hlavný modal
           showConfirmModal.value = false
           emit('close')
-          // Optional: Emit event to refresh quiz list in parent
         } else {
           alert("Error saving quiz: " + result.message)
         }
@@ -225,7 +216,7 @@ const handleSaveClick = () => {
 
     </div>
 
-    <!-- Confirm Save Modal (Nested Overlay) -->
+    <!-- Confirm Save Modal -->
     <div v-if="showConfirmModal" class="confirm-overlay">
       <div class="confirm-card">
         <h3>Ready to Save?</h3>

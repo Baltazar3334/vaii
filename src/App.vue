@@ -84,14 +84,14 @@ nav {
   text-align: center;
 }
 
-/* Upravíme selektor aby fungoval aj na obyčajné <a> v navigácii */
+
 nav a {
   display: inline-block;
   padding: 0 1rem;
   border-left: 1px solid var(--color-border);
   color: #2c3e50;
   text-decoration: none;
-  cursor: pointer; /* Pridaný kurzor */
+  cursor: pointer;
 }
 
 nav a:first-of-type {

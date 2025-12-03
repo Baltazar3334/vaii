@@ -1,7 +1,7 @@
 <?php
-session_start(); // <--- ADD THIS at the very top
+session_start();
 
-// Allow requests from your Vue app (CORS)
+
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -13,9 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    // This brings in the $pdo variable ready to use
+
     require 'db.php';
-    /** @var PDO $pdo */ // <-- Add this line to silence the warning
+    /** @var PDO $pdo */
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
     exit;
