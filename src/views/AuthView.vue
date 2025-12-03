@@ -1,17 +1,50 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router' // Import router for redirection
 
-
+const router = useRouter() // Initialize router
 const isLogin = ref(false)
 
 const username = ref('')
 const email = ref('')
 const password = ref('')
+const errorMessage = ref('') // State for error messages
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
+  errorMessage.value = '' // Reset error
+
   if (isLogin.value) {
-    console.log('Prihlasujem:', { email: email.value, password: password.value })
+    // --- LOGIN LOGIC ---
+    try {
+      const response = await fetch('http://localhost:8000/backend/login.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.value,
+          password: password.value
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        console.log('Login successful', result.user)
+        // Save user info (e.g., to localStorage)
+        localStorage.setItem('user', JSON.stringify(result.user))
+        // Redirect to home or profile
+        router.push('/profile')
+      } else {
+        errorMessage.value = result.message
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      errorMessage.value = 'Server connection failed'
+    }
+
   } else {
+    // --- REGISTRATION LOGIC WOULD GO HERE ---
     console.log('Registrujem:', { username: username.value, email: email.value, password: password.value })
   }
 }
@@ -39,8 +72,13 @@ const handleSubmit = () => {
       </div>
 
       <form @submit.prevent="handleSubmit">
+            
+            <!-- Add Error Message Display -->
+            <div v-if="errorMessage" style="color: red; margin-bottom: 1rem; font-size: 0.9rem;">
+              {{ errorMessage }}
+            </div>
 
-        <div class="input-group" v-if="!isLogin">
+            <div class="input-group" v-if="!isLogin">
           <label>Username</label>
           <input type="text" v-model="username" placeholder="Enter your username" required />
         </div>
