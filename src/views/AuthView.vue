@@ -11,10 +11,10 @@ const password = ref('')
 const errorMessage = ref('') // State for error messages
 
 const handleSubmit = async () => {
-  errorMessage.value = '' // Reset error
+  errorMessage.value = ''
 
   if (isLogin.value) {
-    // --- LOGIN LOGIC ---
+
     try {
       const response = await fetch('http://localhost:8000/backend/login.php', {
         method: 'POST',
@@ -31,9 +31,9 @@ const handleSubmit = async () => {
 
       if (result.success) {
         console.log('Login successful', result.user)
-        // Save user info (e.g., to localStorage)
+
         localStorage.setItem('user', JSON.stringify(result.user))
-        // Redirect to home or profile
+
         router.push('/profile')
       } else {
         errorMessage.value = result.message
@@ -44,8 +44,26 @@ const handleSubmit = async () => {
     }
 
   } else {
-    // --- REGISTRATION LOGIC WOULD GO HERE ---
+
     console.log('Registrujem:', { username: username.value, email: email.value, password: password.value })
+    if (!isLogin.value) {
+      try {
+        const res = await fetch('http://localhost:8000/backend/register.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: username.value, email: email.value, password: password.value })
+        })
+        const result = await res.json()
+        if (result.success) {
+          // Optionally auto-login or redirect to login
+          isLogin.value = true
+        } else {
+          errorMessage.value = result.message
+        }
+      } catch (e) {
+        errorMessage.value = 'Server connection failed'
+      }
+    }
   }
 }
 </script>
