@@ -92,7 +92,24 @@ h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; al
 }
 .quiz-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
 
-.card-body h3 { font-size: 1.1rem; font-weight: 600; color: var(--color-text); margin-bottom: 0.5rem; }
+.card-body {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-body h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.5rem 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+}
 .description {
   color: var(--color-text);
   opacity: 0.7;

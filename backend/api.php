@@ -18,6 +18,14 @@ $authCtrl = new AuthController($db);
 $action = $_GET['action'] ?? '';
 $data = json_decode(file_get_contents("php://input"), true);
 
+$protected_actions = ['save_quiz', 'delete_quiz', 'reset_account'];
+
+if (in_array($action, $protected_actions) && !isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
 switch ($action) {
     case 'login':
         echo json_encode($authCtrl->login($data['email'], $data['password']));
