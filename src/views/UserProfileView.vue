@@ -37,6 +37,7 @@ const fetchUserQuizzes = async (userId) => {
         : result.quizzes.filter(q => parseInt(q.is_public) === 1)
 
       user.value.username = result.username
+      user.value.avatar_url = result.avatar_url // PRIDANÉ
       user.value.initial = result.username.charAt(0).toUpperCase()
       user.value.stats.created = userQuizzes.value.length
       user.value.stats.plays = result.total_plays || 0
@@ -107,7 +108,10 @@ onMounted(() => {
             <h1>{{ isOwnProfile ? 'Welcome back,' : 'Profile of' }} {{ user.username }}!</h1>
             <p>{{ isOwnProfile ? 'Manage your quizzes and track your progress' : 'Explore quizzes from this creator' }}</p>
           </div>
-          <div class="avatar">{{ user.initial }}</div>
+          <div class="avatar">
+            <img v-if="user.avatar_url" :src="user.avatar_url" alt="Avatar" class="avatar-img" @error="user.avatar_url = null" />
+            <span v-else>{{ user.initial }}</span>
+          </div>
         </div>
 
         <div class="stats-grid">
@@ -158,7 +162,13 @@ onMounted(() => {
             <p class="description">{{ quiz.description || 'No description provided.' }}</p>
           </div>
           <div class="card-bottom">
-            <span class="badge">{{ quiz.question_count }} Questions</span>
+            <div class="badges-row">
+              <span class="badge questions">{{ quiz.question_count }} Questions</span>
+              <span class="badge plays">{{ quiz.plays_count || 0 }} Plays</span>
+              <span v-if="isOwnProfile" class="badge status" :class="parseInt(quiz.is_public) === 1 ? 'public' : 'private'">
+                {{ parseInt(quiz.is_public) === 1 ? 'Public' : 'Private' }}
+              </span>
+            </div>
             <button class="play-btn" @click="router.push({ name: 'play', query: { id: quiz.id } })">Play</button>
           </div>
         </div>
@@ -192,7 +202,22 @@ onMounted(() => {
 .user-welcome { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2.5rem; }
 .welcome-text h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: white; }
 .welcome-text p { color: rgba(255, 255, 255, 0.8); }
-.avatar { width: 60px; height: 60px; background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; }
+.avatar { 
+  width: 80px; height: 80px; 
+  background-color: rgba(255, 255, 255, 0.1); 
+  border: 2px solid rgba(255, 255, 255, 0.3); 
+  border-radius: 50%; 
+  display: flex; align-items: center; justify-content: center; 
+  font-size: 2rem; 
+  font-weight: 600; 
+  overflow: hidden; /* Dôležité pre orezanie obrázka do kruhu */
+  flex-shrink: 0;
+}
+.avatar-img { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+}
 
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
 .stat-card { background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; backdrop-filter: blur(5px); }
@@ -223,15 +248,17 @@ onMounted(() => {
   padding-right: 50px;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; word-break: break-all;
 }
-.card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
-.badge { background-color: var(--color-background-soft); color: var(--color-text); font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; }
-.play-btn { background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 1rem; }
+.badges-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.badge { background-color: var(--color-background-soft); color: var(--color-text); font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 600; border: 1px solid var(--color-border); }
 
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-.delete-card { background: var(--card-bg); color: var(--color-text); padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
-.modal-actions { display: flex; gap: 10px; margin-top: 1.5rem; }
-.btn-cancel { flex: 1; padding: 10px; background: none; border: 1px solid var(--color-border); color: var(--color-text); border-radius: 6px; cursor: pointer; }
-.btn-delete { flex: 1; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+/* Špecifické štýly pre nové badges */
+.badge.status.public { color: #10b981; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+.badge.status.private { color: #f59e0b; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); }
+.badge.plays { color: #8b5cf6; background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2); }
+
+.play-btn { background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: transform 0.2s; flex-shrink: 0; }
+.play-btn:hover { transform: scale(1.05); }
 
 @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
 </style>

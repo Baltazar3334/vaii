@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    avatar_url VARCHAR(500) DEFAULT NULL, -- PRIDANÉ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -32,7 +33,6 @@ CREATE TABLE IF NOT EXISTS question_options (
     option_text TEXT NOT NULL,
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 );
-
 
 
 INSERT IGNORE INTO quizzes (id, user_id, title, description) VALUES

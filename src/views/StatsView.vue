@@ -73,10 +73,16 @@ onMounted(fetchStats)
             <template v-else>{{ index + 1 }}</template>
           </div>
 
+          <!-- PRIDANÝ MINI AVATAR -->
+          <div class="mini-avatar">
+            <img v-if="user.avatar_url" :src="user.avatar_url" alt="" @error="user.avatar_url = null" />
+            <span v-else>{{ user.username.charAt(0).toUpperCase() }}</span>
+          </div>
+          
           <div class="user-main">
             <div class="user-info">
-              <!-- UPRAVENÉ: Pridaná trieda link a @click udalosť -->
-              <span class="name link" @click="router.push('/profile/' + user.user_id)">
+              <!-- ZMENA: Pridaná trieda 'name-link' a router.push -->
+              <span class="name name-link" @click="router.push('/profile/' + user.user_id)">
                 {{ user.username }}
               </span>
               <span class="avg">Avg. {{ user.avg_questions }} questions / quiz</span>
@@ -178,7 +184,17 @@ p { color: var(--color-text); opacity: 0.6; }
   opacity: 1;
 }
 
-.rank-item { display: grid; grid-template-columns: 60px 1fr 180px; align-items: center; gap: 1.5rem; padding: 1.5rem; border-radius: 16px; margin-bottom: 1rem; background: var(--color-background-soft); transition: transform 0.2s; }
+.rank-item { 
+  display: grid; 
+  grid-template-columns: 60px 50px 1fr 180px; /* Zmenené z 3 na 4 stĺpce */
+  align-items: center; 
+  gap: 1.5rem; 
+  padding: 1.5rem; 
+  border-radius: 16px; 
+  margin-bottom: 1rem; 
+  background: var(--color-background-soft); 
+  transition: transform 0.2s; 
+}
 .rank-item:hover { transform: scale(1.01); background: var(--card-bg); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
 
 .rank-number { font-size: 1.5rem; font-weight: 800; display: flex; justify-content: center; color: var(--color-text); opacity: 0.4; }
@@ -187,25 +203,14 @@ p { color: var(--color-text); opacity: 0.6; }
 .user-main { display: flex; flex-direction: column; gap: 0.75rem; }
 .name { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
 
-/* PRIDANÉ: Štýl pre klikateľné meno */
-.name.link { 
-  cursor: pointer; 
-  transition: color 0.2s; 
-}
-.name.link:hover { 
-  color: #8b5cf6; 
-  text-decoration: underline; 
+.name-link {
+  cursor: pointer;
+  transition: color 0.2s;
 }
 
-.avg { font-size: 0.8rem; opacity: 0.5; color: var(--color-text); }
-/* PRIDANÉ: Štýl pre klikateľné meno */
-.name.link { 
-  cursor: pointer; 
-  transition: color 0.2s; 
-}
-.name.link:hover { 
-  color: #8b5cf6; 
-  text-decoration: underline; 
+.name-link:hover {
+  color: #8b5cf6;
+  text-decoration: underline;
 }
 
 .avg { font-size: 0.8rem; opacity: 0.5; color: var(--color-text); }
@@ -224,6 +229,26 @@ p { color: var(--color-text); opacity: 0.6; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(139, 92, 246, 0.1); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.mini-avatar {
+  width: 40px;
+  height: 40px;
+  background: #8b5cf6;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  overflow: hidden;
+  border: 2px solid var(--color-border);
+}
+
+.mini-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 @media (max-width: 768px) {
   .stats-card { padding: 1.5rem; border-radius: 0; border: none; }
   h1 { font-size: 1.8rem; }
@@ -233,20 +258,8 @@ p { color: var(--color-text); opacity: 0.6; }
   .sort-item button { flex: 1; border: none; background: transparent; text-align: left; }
   .sort-item button.active { background: #8b5cf6; box-shadow: none; }
 
-  .rank-item { 
-    grid-template-columns: 40px 1fr; 
-    gap: 1rem; 
-    padding: 1rem;
-  }
-  
-  .stats-grid { 
-    display: flex; 
-    grid-column: 1 / -1; /* Roztiahne štatistiky na celý riadok pod meno */
-    justify-content: space-between;
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--color-border);
-  }
+  .rank-item { grid-template-columns: 40px 40px 1fr; }
+  .stats-grid { display: none; }
 
   .mini-stat { 
     flex: 1;

@@ -23,8 +23,8 @@ class QuizController {
         $stmt->execute(['uid' => $userId]);
         $quizzes = $stmt->fetchAll();
         
-        // ZISTÍME MENO POUŽÍVATEĽA
-        $uStmt = $this->db->prepare("SELECT username FROM users WHERE id = :uid");
+        // ZISTÍME MENO A AVATAR POUŽÍVATEĽA
+        $uStmt = $this->db->prepare("SELECT username, avatar_url FROM users WHERE id = :uid");
         $uStmt->execute(['uid' => $userId]);
         $user = $uStmt->fetch();
 
@@ -37,7 +37,8 @@ class QuizController {
             'success' => true, 
             'quizzes' => $quizzes, 
             'total_plays' => $totalPlays,
-            'username' => $user ? $user['username'] : 'Unknown'
+            'username' => $user ? $user['username'] : 'Unknown',
+            'avatar_url' => $user ? $user['avatar_url'] : null // PRIDANÉ
         ];
     }
 
@@ -125,8 +126,9 @@ class QuizController {
     public function getLeaderboard() {
         $sql = "
             SELECT 
-                u.id as user_id, -- PRIDANÉ: Potrebujeme ID pre prelinkovanie
+                u.id as user_id,
                 u.username,
+                u.avatar_url, -- PRIDANÉ
                 COUNT(DISTINCT q.id) as quizzes_created,
                 IFNULL(SUM(q.plays_count), 0) as total_plays_received,
                 (SELECT COUNT(*) FROM questions qst JOIN quizzes q2 ON qst.quiz_id = q2.id WHERE q2.user_id = u.id) as total_questions

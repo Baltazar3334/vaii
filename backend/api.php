@@ -63,6 +63,15 @@ switch ($action) {
     case 'reset_account':
         echo json_encode($quizCtrl->resetAccount($data['user_id']));
         break;
+    case 'update_avatar':
+        echo json_encode($authCtrl->updateAvatar($data['user_id'], $data['avatar_url']));
+        break;
+    case 'update_username':
+        echo json_encode($authCtrl->updateUsername($data['user_id'], $data['new_username']));
+        break;
+    case 'update_password':
+        echo json_encode($authCtrl->updatePassword($data['user_id'], $data['new_password']));
+        break;
     case 'check_auth':
         echo json_encode(['logged_in' => isset($_SESSION['user_id']), 'user' => $_SESSION['user_id'] ? ['id' => $_SESSION['user_id'], 'username' => $_SESSION['username']] : null]);
         break;
