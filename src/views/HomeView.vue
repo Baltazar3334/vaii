@@ -59,6 +59,8 @@ watch(refreshSignal, fetchQuizzes)
             <div class="meta-info">
               <span>{{ quiz.questions }} questions</span>
               <span class="separator">•</span>
+              <span>{{ quiz.plays_count || 0 }} plays</span>
+              <span class="separator">•</span>
               <span>by {{ quiz.author }}</span>
             </div>
           </div>

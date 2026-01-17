@@ -8,7 +8,8 @@ class QuizController {
 
     public function getAllPublic() {
         $stmt = $this->db->query("
-            SELECT q.*, u.username as author, (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questions
+            SELECT q.*, u.username as author, 
+                   (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questions
             FROM quizzes q JOIN users u ON q.user_id = u.id
             WHERE q.is_public = 1 ORDER BY q.created_at DESC
         ");
