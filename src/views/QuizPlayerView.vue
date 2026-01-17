@@ -88,9 +88,14 @@ const handleAnswer = (index) => {
   }, 600)
 }
 
-const finishQuiz = () => {
+const finishQuiz = async () => {
   clearInterval(timerInterval.value)
   isFinished.value = true
+  try {
+    await fetch(`http://localhost:8000/backend/api.php?action=increment_plays&id=${quiz.value.id}`)
+  } catch (e) {
+    console.error("Failed to update plays count", e)
+  }
 }
 
 onMounted(loadQuiz)
@@ -113,6 +118,11 @@ onUnmounted(() => clearInterval(timerInterval.value))
         <div class="progress-bar">
           <div class="progress-fill" :style="{ width: progress + '%' }"></div>
         </div>
+      </div>
+
+      <!-- Obrázok presunutý sem ako samostatný blok -->
+      <div v-if="quiz.image_url" class="quiz-hero-image">
+        <img :src="quiz.image_url" alt="Quiz cover" />
       </div>
 
       <div class="question-card" v-if="currentQuestion">
@@ -162,12 +172,13 @@ onUnmounted(() => clearInterval(timerInterval.value))
 <style scoped>
 .player-container {
   min-height: calc(100vh - 70px);
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  background: var(--color-background-soft);
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 2rem;
   font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s;
 }
 
 .quiz-active {
@@ -175,20 +186,43 @@ onUnmounted(() => clearInterval(timerInterval.value))
   max-width: 700px;
 }
 
-.game-header {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px 12px 0 0;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+.quiz-hero-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-background-soft);
 }
 
-.game-header h1 { font-size: 1.25rem; color: #1f2937; margin-bottom: 0.5rem; }
+.quiz-hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
+.game-header {
+  background: var(--card-bg);
+  padding: 1.5rem 2rem;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+}
+
+.game-header h1 {
+  font-size: 1.5rem;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+  transition: color 0.3s;
+}
 .stats-row {
   display: flex;
   justify-content: space-between;
-  color: #6b7280;
-  font-size: 0.9rem;
+  color: var(--color-text);
+  opacity: 0.8;
+  font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 1rem;
 }
@@ -197,11 +231,10 @@ onUnmounted(() => clearInterval(timerInterval.value))
 
 .progress-bar {
   height: 8px;
-  background: #e5e7eb;
+  background: var(--color-background-soft);
   border-radius: 4px;
   overflow: hidden;
 }
-
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #8b5cf6, #3b82f6);
@@ -209,17 +242,23 @@ onUnmounted(() => clearInterval(timerInterval.value))
 }
 
 .question-card {
-  background: white;
+  background: var(--card-bg);
   padding: 2.5rem;
+  /* Ak je obrázok, horné rohy karty nezaobľujeme */
   border-radius: 0 0 12px 12px;
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  border: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border); /* Oddeľovač od obrázka */
 }
 
 .question-text {
   font-size: 1.5rem;
-  color: #111827;
+  color: var(--color-text);
   margin-bottom: 2rem;
   text-align: center;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .options-list {
@@ -229,41 +268,48 @@ onUnmounted(() => clearInterval(timerInterval.value))
 
 .option-btn {
   padding: 1rem 1.5rem;
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
+  background: var(--color-background-soft);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
   text-align: left;
   transition: all 0.2s;
   font-weight: 500;
+  height: auto;
+  min-height: 3.5rem;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .option-btn:hover:not(:disabled) {
   border-color: #8b5cf6;
-  background: #f5f3ff;
+  background: rgba(139, 92, 246, 0.1);
 }
 
-.option-btn.selected { border-color: #8b5cf6; background: #f5f3ff; }
-.option-btn.correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
-.option-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+.option-btn.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.15); }
+.option-btn.correct { background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #10b981; }
+.option-btn.wrong { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #ef4444; }
 
 /* Result Card */
 .result-card {
-  background: white;
+  background: var(--card-bg);
   padding: 3rem;
   border-radius: 20px;
   text-align: center;
   box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
   max-width: 450px;
   width: 100%;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
 .trophy { font-size: 4rem; margin-bottom: 1rem; }
-.score-text { font-size: 1.2rem; color: #4b5563; margin-bottom: 2rem; }
+.score-text { font-size: 1.2rem; color: var(--color-text); opacity: 0.9; margin-bottom: 2rem; }
 
 .final-stats {
-  background: #f3f4f6;
+  background: var(--color-background-soft);
   padding: 1.5rem;
   border-radius: 12px;
   margin-bottom: 2rem;
@@ -275,8 +321,8 @@ onUnmounted(() => clearInterval(timerInterval.value))
   margin-bottom: 0.5rem;
 }
 
-.stat .label { color: #6b7280; }
-.stat .value { font-weight: 700; color: #1f2937; }
+.stat .label { color: var(--color-text); opacity: 0.7; }
+.stat .value { font-weight: 700; color: var(--color-text); }
 
 .home-btn {
   width: 100%;
@@ -288,4 +334,5 @@ onUnmounted(() => clearInterval(timerInterval.value))
   font-weight: 700;
   cursor: pointer;
 }
+
 </style>

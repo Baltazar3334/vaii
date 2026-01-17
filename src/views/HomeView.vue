@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const refreshSignal = inject('refreshSignal')
 const searchQuery = ref('')
 const quizzes = ref([])
 const isLoading = ref(true)
@@ -29,6 +30,7 @@ const filteredQuizzes = computed(() => {
 })
 
 onMounted(fetchQuizzes)
+watch(refreshSignal, fetchQuizzes)
 </script>
 
 <template>

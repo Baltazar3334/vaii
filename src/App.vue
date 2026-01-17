@@ -37,6 +37,10 @@ onMounted(() => {
 
 // Provide this function to children so AuthView can call it after login
 provide('updateUser', checkUser)
+const refreshSignal = ref(0)
+const triggerRefresh = () => { refreshSignal.value++ }
+provide('refreshSignal', refreshSignal)
+provide('triggerRefresh', triggerRefresh)
 </script>
 
 <template>
@@ -51,6 +55,7 @@ provide('updateUser', checkUser)
         <!-- Show Profile only if logged in -->
         <RouterLink v-if="currentUser" to="/profile">Profile</RouterLink>
         <RouterLink v-if="currentUser" to="/settings">Settings</RouterLink>
+        <RouterLink to="/stats">Statistics</RouterLink>
 
         <!-- Show Login only if NOT logged in -->
         <RouterLink v-if="!currentUser" to="/login" style="color: #8b5cf6;">Login</RouterLink>
@@ -66,6 +71,7 @@ provide('updateUser', checkUser)
   <QuizCreatorModal
       v-if="showCreateModal"
       @close="showCreateModal = false"
+      @saved="triggerRefresh"
   />
 </template>
 

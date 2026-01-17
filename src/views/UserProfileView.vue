@@ -1,9 +1,17 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, inject, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import QuizCreatorModal from '@/components/quiz/QuizCreatorModal.vue'
 
 const router = useRouter()
+const route = useRoute()
+const refreshSignal = inject('refreshSignal')
+
+// LOGIKA PROFILU (Vlastný vs Cudzí)
+const profileId = computed(() => route.params.id)
+const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}')
+const isOwnProfile = computed(() => !profileId.value || parseInt(profileId.value) === parseInt(loggedInUser.id))
+
 const user = ref({ id: null, username: 'Guest', initial: '?', stats: { created: 0, plays: 0, questions: 0 } })
 const userQuizzes = ref([])
 const isLoading = ref(true)
@@ -15,12 +23,23 @@ const showEditModal = ref(false)
 const quizToEdit = ref(null)
 
 const fetchUserQuizzes = async (userId) => {
+  if (!userId) return
+  isLoading.value = true
   try {
-    const response = await fetch(`http://localhost:8000/backend/api.php?action=get_user_quizzes&user_id=${userId}`)
+    const response = await fetch(`http://localhost:8000/backend/api.php?action=get_user_quizzes&user_id=${userId}`, {
+      credentials: 'include'
+    })
     const result = await response.json()
     if (result.success) {
-      userQuizzes.value = result.quizzes
-      user.value.stats.created = result.quizzes.length
+      // Ak je to cudzí profil, zobrazíme len verejné kvízy
+      userQuizzes.value = isOwnProfile.value 
+        ? result.quizzes 
+        : result.quizzes.filter(q => parseInt(q.is_public) === 1)
+
+      user.value.username = result.username
+      user.value.initial = result.username.charAt(0).toUpperCase()
+      user.value.stats.created = userQuizzes.value.length
+      user.value.stats.plays = result.total_plays || 0
       user.value.stats.questions = result.quizzes.reduce((sum, quiz) => sum + parseInt(quiz.question_count || 0), 0)
     }
   } catch (error) {
@@ -45,29 +64,34 @@ const handleDelete = async () => {
       body: JSON.stringify({ quiz_id: quizToDelete.value.id, user_id: user.value.id }),
       credentials: 'include'
     })
-    if ((await response.json()).success) {
+    const res = await response.json()
+    if (res.success) {
       userQuizzes.value = userQuizzes.value.filter(q => q.id !== quizToDelete.value.id)
       showDeleteModal.value = false
+      fetchUserQuizzes(profileId.value || loggedInUser.id)
     }
   } catch (e) { console.error(e) }
 }
 
-// Logika úpravy - otvorí náš vylepšený QuizCreatorModal
 const openEditModal = (quiz) => {
   quizToEdit.value = quiz
   showEditModal.value = true
 }
 
 const handleRefresh = () => {
-  fetchUserQuizzes(user.value.id)
+  fetchUserQuizzes(profileId.value || loggedInUser.id)
 }
 
+watch(refreshSignal, handleRefresh)
+// Sledujeme zmenu ID v URL (ak používateľ preklikne z jedného profilu na druhý)
+watch(() => route.params.id, (newId) => {
+  fetchUserQuizzes(newId || loggedInUser.id)
+})
+
 onMounted(() => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    const userData = JSON.parse(userStr)
-    user.value = { ...user.value, ...userData, initial: userData.username.charAt(0).toUpperCase() }
-    fetchUserQuizzes(userData.id)
+  const targetId = profileId.value || loggedInUser.id
+  if (targetId) {
+    fetchUserQuizzes(targetId)
   } else {
     router.push('/login')
   }
@@ -76,13 +100,12 @@ onMounted(() => {
 
 <template>
   <div class="profile-container">
-    <!-- Header Section -->
     <div class="profile-header">
       <div class="header-wrapper">
         <div class="user-welcome">
           <div class="welcome-text">
-            <h1>Welcome back, {{ user.username }}!</h1>
-            <p>Manage your quizzes and track your progress</p>
+            <h1>{{ isOwnProfile ? 'Welcome back,' : 'Profile of' }} {{ user.username }}!</h1>
+            <p>{{ isOwnProfile ? 'Manage your quizzes and track your progress' : 'Explore quizzes from this creator' }}</p>
           </div>
           <div class="avatar">{{ user.initial }}</div>
         </div>
@@ -92,44 +115,41 @@ onMounted(() => {
             <div class="stat-icon">🏆</div>
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.created }}</span>
-              <span class="stat-label"> Quizzes Created</span>
+              <span class="stat-label">Quizzes {{ isOwnProfile ? 'Created' : '' }}</span>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">🎮</div>
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.plays }}</span>
-              <span class="stat-label"> Total Plays</span>
+              <span class="stat-label">Total Plays</span>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">@</div>
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.questions }}</span>
-              <span class="stat-label"> Questions Written</span>
+              <span class="stat-label">Questions Written</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Main Content Section -->
     <div class="content-container">
       <div class="section-header">
-        <h2>Your Quizzes</h2>
-        <p>Create, edit, and manage your quiz collection</p>
+        <h2>{{ isOwnProfile ? 'Your Quizzes' : 'Public Quizzes' }}</h2>
       </div>
 
-      <div v-if="isLoading" class="loading-state">Loading your quizzes...</div>
+      <div v-if="isLoading" class="loading-state">Loading quizzes...</div>
       <div v-else-if="userQuizzes.length === 0" class="empty-state">
         <div class="trophy-icon">🏆</div>
         <h3>No quizzes yet</h3>
-        <p>Start creating your first quiz to share with others!</p>
       </div>
 
       <div v-else class="quiz-grid">
         <div v-for="quiz in userQuizzes" :key="quiz.id" class="quiz-card">
-          <div class="actions-container">
+          <div v-if="isOwnProfile" class="actions-container">
             <button class="action-btn edit-btn" @click="openEditModal(quiz)" title="Edit Quiz">✎</button>
             <button class="action-btn delete-btn" @click="confirmDelete(quiz)" title="Delete Quiz">×</button>
           </div>
@@ -146,7 +166,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- POUŽITIE UNIVERZÁLNEHO MODALU PRE EDITÁCIU -->
     <QuizCreatorModal
         v-if="showEditModal"
         :editData="quizToEdit"
@@ -154,7 +173,6 @@ onMounted(() => {
         @saved="handleRefresh"
     />
 
-    <!-- Jednoduchý Delete Modal -->
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
       <div class="delete-card">
         <h3>Delete Quiz?</h3>
@@ -169,7 +187,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Pôvodné štýly zostávajú, len farby idú cez premenné */
 .profile-container { min-height: 100vh; background-color: var(--color-background-soft); color: var(--color-text); font-family: 'Inter', sans-serif; }
 .profile-header { background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); padding: 3rem 2rem 5rem; color: white; display: flex; justify-content: center; }
 .header-wrapper { max-width: 1000px; width: 100%; }
@@ -185,7 +202,6 @@ onMounted(() => {
 
 .content-container { max-width: 1000px; margin: 2rem auto; padding: 0 2rem; }
 .section-header h2 { font-size: 1.5rem; color: var(--color-text); font-weight: 600; }
-.section-header p { color: var(--color-text); opacity: 0.7; }
 
 .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
 .quiz-card { position: relative; background: var(--card-bg); border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -202,7 +218,12 @@ onMounted(() => {
 .delete-btn:hover { color: #ef4444; }
 .edit-btn:hover { color: #3b82f6; }
 
-.card-top h3 { color: var(--color-text); margin-bottom: 0.5rem; padding-right: 50px; }
+.card-top h3 {
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+  padding-right: 50px;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; word-break: break-all;
+}
 .card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
 .badge { background-color: var(--color-background-soft); color: var(--color-text); font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; }
 .play-btn { background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }

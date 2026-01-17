@@ -12,13 +12,18 @@ const quizTitle = ref(props.editData?.title || '')
 const quizDescription = ref(props.editData?.description || '')
 const quizImageUrl = ref(props.editData?.image_url || '')
 const isPublic = ref(props.editData ? Boolean(Number(props.editData.is_public)) : true)
-const questions = ref([])
+const questions = ref([]) // Inicializujeme ako prázdne pole
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
 
 // Ak upravujeme, musíme stiahnuť aj otázky z DB
 const fetchQuestionsForEdit = async () => {
-  if (!isEditMode) return
+  if (!isEditMode) {
+    // Ak sme v režime tvorby, začneme s jednou prázdnou otázkou
+    questions.value = [{ id: Date.now(), text: '', options: ['', '', '', ''], correctAnswer: 0 }]
+    return
+  }
+  
   try {
     const response = await fetch(`http://localhost:8000/backend/api.php?action=get_quiz_details&id=${props.editData.id}`, {
       credentials: 'include'
@@ -26,6 +31,7 @@ const fetchQuestionsForEdit = async () => {
     const result = await response.json()
     if (result.success) {
       quizImageUrl.value = result.quiz.image_url || ''
+      // Prepíšeme pole, nepridávame k nemu
       questions.value = result.questions.map(q => ({
         id: q.id,
         text: q.question_text,

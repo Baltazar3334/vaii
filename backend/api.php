@@ -45,6 +45,12 @@ switch ($action) {
     case 'get_user_quizzes':
         echo json_encode($quizCtrl->getUserQuizzes($_GET['user_id'] ?? 0));
         break;
+    case 'increment_plays':
+        echo json_encode($quizCtrl->incrementPlays($_GET['id'] ?? 0));
+        break;
+    case 'get_leaderboard':
+        echo json_encode($quizCtrl->getLeaderboard());
+        break;
     case 'get_quiz_details':
         echo json_encode($quizCtrl->getDetails($_GET['id'] ?? 0));
         break;

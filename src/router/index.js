@@ -4,6 +4,7 @@ import QuizPlayerView from '../views/QuizPlayerView.vue'
 import AuthView from "@/views/AuthView.vue";
 import UserProfileView from "@/views/UserProfileView.vue";
 import SettingsView from "@/views/SettingsView.vue";
+import StatsView from "@/views/StatsView.vue";
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,7 +25,7 @@ const router = createRouter({
             component: QuizPlayerView
         },
         {
-            path: '/profile',
+            path: '/profile/:id?',
             name: 'profile',
             component: UserProfileView
         },
@@ -32,6 +33,11 @@ const router = createRouter({
             path: '/settings',
             name: 'settings',
             component: SettingsView
+        },
+        {
+            path: '/stats',
+            name: 'stats',
+            component: StatsView
         }
     ]
 })

@@ -21,7 +21,30 @@ class QuizController {
             FROM quizzes q WHERE q.user_id = :uid ORDER BY q.created_at DESC
         ");
         $stmt->execute(['uid' => $userId]);
-        return ['success' => true, 'quizzes' => $stmt->fetchAll()];
+        $quizzes = $stmt->fetchAll();
+        
+        // ZISTÍME MENO POUŽÍVATEĽA
+        $uStmt = $this->db->prepare("SELECT username FROM users WHERE id = :uid");
+        $uStmt->execute(['uid' => $userId]);
+        $user = $uStmt->fetch();
+
+        $totalPlays = 0;
+        foreach ($quizzes as $quiz) {
+            $totalPlays += (int)($quiz['plays_count'] ?? 0);
+        }
+
+        return [
+            'success' => true, 
+            'quizzes' => $quizzes, 
+            'total_plays' => $totalPlays,
+            'username' => $user ? $user['username'] : 'Unknown'
+        ];
+    }
+
+    public function incrementPlays($quizId) {
+        $stmt = $this->db->prepare("UPDATE quizzes SET plays_count = plays_count + 1 WHERE id = :id");
+        $stmt->execute(['id' => $quizId]);
+        return ['success' => true];
     }
 
     public function getDetails($id) {
@@ -55,6 +78,9 @@ class QuizController {
                     'id' => $quizId,
                     'uid' => $data['user_id']
                 ]);
+                // EXPLICITNÉ VYMAZANIE (Foreign Key Cascade v DB sa postará o options)
+                $stmtDel = $this->db->prepare("DELETE FROM questions WHERE quiz_id = :id");
+                $stmtDel->execute(['id' => $quizId]);
             } else {
                 $stmt = $this->db->prepare("INSERT INTO quizzes (user_id, title, description, is_public, image_url) VALUES (:uid, :t, :d, :p, :img)");
                 $stmt->execute([
@@ -94,5 +120,22 @@ class QuizController {
         $stmt = $this->db->prepare("DELETE FROM quizzes WHERE user_id = :uid");
         $stmt->execute(['uid' => $userId]);
         return ['success' => true];
+    }
+
+    public function getLeaderboard() {
+        $sql = "
+            SELECT 
+                u.id as user_id, -- PRIDANÉ: Potrebujeme ID pre prelinkovanie
+                u.username,
+                COUNT(DISTINCT q.id) as quizzes_created,
+                IFNULL(SUM(q.plays_count), 0) as total_plays_received,
+                (SELECT COUNT(*) FROM questions qst JOIN quizzes q2 ON qst.quiz_id = q2.id WHERE q2.user_id = u.id) as total_questions
+            FROM users u
+            LEFT JOIN quizzes q ON u.id = q.user_id
+            GROUP BY u.id
+            ORDER BY total_plays_received DESC
+        ";
+        $stmt = $this->db->query($sql);
+        return ['success' => true, 'leaderboard' => $stmt->fetchAll()];
     }
 }

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS quizzes (
     title VARCHAR(255) NOT NULL,
     is_public TINYINT(1) DEFAULT 1,
     description TEXT,
+    plays_count INT DEFAULT 0,
     image_url VARCHAR(500) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -33,7 +34,6 @@ CREATE TABLE IF NOT EXISTS question_options (
 );
 
 
-ALTER TABLE quizzes ADD COLUMN image_url VARCHAR(500) DEFAULT NULL;
 
 INSERT IGNORE INTO quizzes (id, user_id, title, description) VALUES
 (1, 1, 'Vseobecny prehlad', 'Otestuj si svoje vedomosti z roznych oblasti.'),
