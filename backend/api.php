@@ -1,0 +1,51 @@
+<?php
+session_start();
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Content-Type: application/json");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
+
+require_once 'db.php';
+require_once 'QuizController.php';
+require_once 'AuthController.php';
+
+$db = Database::getInstance();
+$quizCtrl = new QuizController($db);
+$authCtrl = new AuthController($db);
+
+$action = $_GET['action'] ?? '';
+$data = json_decode(file_get_contents("php://input"), true);
+
+switch ($action) {
+    case 'login':
+        echo json_encode($authCtrl->login($data['email'], $data['password']));
+        break;
+    case 'register':
+        echo json_encode($authCtrl->register($data['username'], $data['email'], $data['password']));
+        break;
+    case 'get_all_quizzes':
+        echo json_encode($quizCtrl->getAllPublic());
+        break;
+    case 'get_user_quizzes':
+        echo json_encode($quizCtrl->getUserQuizzes($_GET['user_id'] ?? 0));
+        break;
+    case 'get_quiz_details':
+        echo json_encode($quizCtrl->getDetails($_GET['id'] ?? 0));
+        break;
+    case 'save_quiz':
+        echo json_encode($quizCtrl->saveQuiz($data, $data['quiz_id'] ?? null));
+        break;
+    case 'delete_quiz':
+        echo json_encode($quizCtrl->delete($data['quiz_id'], $data['user_id']));
+        break;
+    case 'reset_account':
+        echo json_encode($quizCtrl->resetAccount($data['user_id']));
+        break;
+    case 'check_auth':
+        echo json_encode(['logged_in' => isset($_SESSION['user_id']), 'user' => $_SESSION['user_id'] ? ['id' => $_SESSION['user_id'], 'username' => $_SESSION['username']] : null]);
+        break;
+    default:
+        echo json_encode(['success' => false, 'message' => 'Action not found']);
+}

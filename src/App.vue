@@ -31,6 +31,8 @@ const handleLogout = () => {
 // Check user on mount
 onMounted(() => {
   checkUser()
+  const savedTheme = localStorage.getItem('theme') || 'light'
+  document.documentElement.setAttribute('data-theme', savedTheme)
 })
 
 // Provide this function to children so AuthView can call it after login
@@ -46,11 +48,10 @@ provide('updateUser', checkUser)
         <!-- Show Create Quiz only if logged in -->
         <a v-if="currentUser" href="#" @click.prevent="showCreateModal = true">Create Quiz</a>
         
-        <RouterLink to="/play">Play Quiz</RouterLink>
-        
         <!-- Show Profile only if logged in -->
         <RouterLink v-if="currentUser" to="/profile">Profile</RouterLink>
-        
+        <RouterLink v-if="currentUser" to="/settings">Settings</RouterLink>
+
         <!-- Show Login only if NOT logged in -->
         <RouterLink v-if="!currentUser" to="/login" style="color: #8b5cf6;">Login</RouterLink>
         

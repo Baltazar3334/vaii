@@ -1,580 +1,285 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
-const emit = defineEmits(['close'])
+const props = defineProps({
+  editData: { type: Object, default: null }
+})
 
-const quizTitle = ref('')
-const quizDescription = ref('')
+const emit = defineEmits(['close', 'saved'])
+
+const isEditMode = !!props.editData
+const quizTitle = ref(props.editData?.title || '')
+const quizDescription = ref(props.editData?.description || '')
+const isPublic = ref(props.editData ? Boolean(Number(props.editData.is_public)) : true)
 const questions = ref([])
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
 
+// Ak upravujeme, musíme stiahnuť aj otázky z DB
+const fetchQuestionsForEdit = async () => {
+  if (!isEditMode) return
+  try {
+    const response = await fetch(`http://localhost:8000/backend/api.php?action=get_quiz_details&id=${props.editData.id}`)
+    const result = await response.json()
+    if (result.success) {
+      // Namapujeme dáta späť na formát pre formulár
+      questions.value = result.questions.map(q => ({
+        id: q.id,
+        text: q.question_text,
+        options: q.options,
+        correctAnswer: parseInt(q.correct_option_index)
+      }))
+    }
+  } catch (e) { console.error(e) }
+}
+
+onMounted(fetchQuestionsForEdit)
+
 const handleAddQuestion = () => {
-  questions.value.push({
-    id: Date.now(),
-    text: '',
-    options: ['', '', '', ''],
-    correctAnswer: 0
-  })
+  questions.value.push({ id: Date.now(), text: '', options: ['', '', '', ''], correctAnswer: 0 })
   if (errorMessage.value) errorMessage.value = ''
 }
 
-const removeQuestion = (index) => {
-  questions.value.splice(index, 1)
-}
+const removeQuestion = (index) => { questions.value.splice(index, 1) }
 
 const validateForm = () => {
-  errorMessage.value = ''
-
-  if (!quizTitle.value.trim()) {
-    errorMessage.value = 'Please enter a quiz title.'
-    return false
+  if (!quizTitle.value.trim() || !quizDescription.value.trim() || questions.value.length === 0) {
+    errorMessage.value = 'Please fill in title, description and at least one question.';
+    return false;
   }
-  if (!quizDescription.value.trim()) {
-    errorMessage.value = 'Please enter a description.'
-    return false
-  }
-  if (questions.value.length === 0) {
-    errorMessage.value = 'Please add at least one question.'
-    return false
-  }
-
-  for (let i = 0; i < questions.value.length; i++) {
-    const q = questions.value[i]
-    if (!q.text.trim()) {
-      errorMessage.value = `Question ${i + 1} is empty.`
-      return false
-    }
-    for (let j = 0; j < q.options.length; j++) {
-      if (!q.options[j].trim()) {
-        errorMessage.value = `Option ${j + 1} in Question ${i + 1} is empty.`
-        return false
-      }
-    }
-  }
-
-  return true
+  return true;
 }
 
-const handleSaveClick = () => {
-  if (validateForm()) {
-    showConfirmModal.value = true
+const handleSaveClick = () => { if (validateForm()) showConfirmModal.value = true; }
+
+const confirmSave = async () => {
+  const user = JSON.parse(localStorage.getItem('user'))
+
+  const quizData = {
+    user_id: user.id,
+    title: quizTitle.value,
+    description: quizDescription.value,
+    is_public: isPublic.value,
+    questions: questions.value.map(q => ({
+      text: q.text,
+      options: q.options,
+      correctAnswer: q.correctAnswer
+    }))
   }
-}
+  if (isEditMode) quizData.quiz_id = props.editData.id
 
-    const confirmSave = async () => {
-      const userStr = localStorage.getItem('user')
-      if (!userStr) {
-        alert("You must be logged in to save a quiz.")
-        return
-      }
-      const user = JSON.parse(userStr)
-
-      const quizData = {
-        user_id: user.id,
-        title: quizTitle.value,
-        description: quizDescription.value,
-        questions: questions.value.map(q => ({
-          text: q.text,
-          options: q.options,
-          correctAnswer: q.correctAnswer
-        }))
-      }
-
-      try {
-        const response = await fetch('http://localhost:8000/backend/create_quiz.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(quizData)
-        })
-
-        const result = await response.json()
-
-        if (result.success) {
-          console.log("Quiz saved!", result)
-          showConfirmModal.value = false
-          emit('close')
-        } else {
-          alert("Error saving quiz: " + result.message)
-        }
-      } catch (error) {
-        console.error("Network error:", error)
-        alert("Failed to connect to server.")
-      }
-    }
-
-    const handleCancel = () => {
-  emit('close')
+  try {
+    const response = await fetch(`http://localhost:8000/backend/api.php?action=save_quiz`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(quizData)
+    })
+    const result = await response.json()
+    if (result.success) {
+      emit('saved')
+      emit('close')
+    } else { alert(result.message) }
+  } catch (e) { console.error(e) }
 }
 </script>
 
-
 <template>
-  <div class="modal-overlay" @click.self="handleCancel">
+  <div class="modal-overlay" @click.self="emit('close')">
     <div class="creator-card">
-
-      <!-- Header -->
       <div class="card-header">
-        <h2>Create New Quiz</h2>
-        <button class="close-btn" @click="handleCancel">×</button>
+        <h2>{{ isEditMode ? 'Edit Quiz' : 'Create New Quiz' }}</h2>
+        <button class="close-btn" @click="emit('close')">×</button>
       </div>
 
-      <!-- Form Body -->
       <div class="form-body">
         <div class="input-group">
           <label>Quiz Title</label>
-          <input
-              type="text"
-              v-model="quizTitle"
-              placeholder="Enter an engaging title"
-          />
+          <input type="text" v-model="quizTitle" placeholder="Enter title" />
         </div>
 
         <div class="input-group">
           <label>Description</label>
-          <textarea
-              v-model="quizDescription"
-              placeholder="Describe what your quiz is about"
-              rows="3"
-          ></textarea>
+          <textarea v-model="quizDescription" placeholder="Description" rows="3"></textarea>
         </div>
 
-        <!-- Questions Section -->
+        <!-- PEKNÝ FIALOVÝ SWITCH -->
+        <div class="input-group status-row">
+          <label>Public Visibility</label>
+          <label class="switch">
+            <input type="checkbox" v-model="isPublic">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <!-- PÔVODNÁ SEKCIA OTÁZOK -->
         <div class="questions-section">
           <div class="questions-header">
             <label>Questions ({{ questions.length }})</label>
-            <button class="add-question-btn" @click="handleAddQuestion">
-              + Add Question
-            </button>
+            <button class="add-question-btn" @click="handleAddQuestion">+ Add Question</button>
           </div>
 
-          <!-- Empty State -->
-          <div class="questions-empty-state" v-if="questions.length === 0">
-            <p>No questions yet. Click "Add Question" to get started!</p>
-          </div>
+          <div v-if="questions.length === 0" class="questions-empty-state">No questions yet.</div>
 
-          <!-- Questions List -->
-          <div class="questions-list" v-else>
-            <div v-for="(question, qIndex) in questions" :key="question.id" class="question-card">
-
+          <div v-else class="questions-list">
+            <div v-for="(question, qIndex) in questions" :key="qIndex" class="question-card">
               <div class="question-header-row">
-                <span class="question-number">Q{{ qIndex + 1 }}</span>
-                <button class="remove-btn" @click="removeQuestion(qIndex)">Remove</button>
+                <span class="question-number">Question {{ qIndex + 1 }}</span>
+                <button class="remove-q-btn" @click="removeQuestion(qIndex)" title="Remove Question">×</button>
               </div>
-
-              <div class="input-group sm-mb">
-                <input
-                    v-model="question.text"
-                    placeholder="What is the question?"
-                    class="question-input"
-                />
-              </div>
+              <input v-model="question.text" placeholder="What is the question?" class="question-input" />
 
               <div class="options-grid">
-                <div
-                    v-for="(option, oIndex) in question.options"
-                    :key="oIndex"
-                    class="option-item"
-                    :class="{ 'is-correct': question.correctAnswer === oIndex }"
-                >
-                  <input
-                      type="radio"
-                      :name="'correct-answer-' + question.id"
-                      :value="oIndex"
-                      v-model="question.correctAnswer"
-                      title="Mark as correct answer"
-                  />
-                  <input
-                      type="text"
-                      v-model="question.options[oIndex]"
-                      :placeholder="'Option ' + (oIndex + 1)"
-                  />
+                <div v-for="(option, oIndex) in question.options" :key="oIndex" class="option-item" :class="{ 'is-correct': question.correctAnswer === oIndex }">
+                  <input type="radio" :name="'correct-' + qIndex" :value="oIndex" v-model="question.correctAnswer" />
+                  <input type="text" v-model="question.options[oIndex]" :placeholder="'Option ' + (oIndex + 1)" />
                 </div>
               </div>
-
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Error Message Display -->
-      <div v-if="errorMessage" class="error-banner">
-        ⚠️ {{ errorMessage }}
-      </div>
+      <div v-if="errorMessage" class="error-banner">⚠️ {{ errorMessage }}</div>
 
-      <!-- Footer Actions -->
       <div class="card-footer">
-        <button class="save-btn" @click="handleSaveClick">
-          <span class="icon">💾</span> Save Quiz
-        </button>
-        <button class="cancel-btn" @click="handleCancel">
-          Cancel
-        </button>
+        <button class="save-btn" @click="handleSaveClick">💾 Save Quiz</button>
+        <button class="cancel-btn" @click="emit('close')">Cancel</button>
       </div>
-
     </div>
 
-    <!-- Confirm Save Modal -->
+    <!-- Confirm Modal -->
     <div v-if="showConfirmModal" class="confirm-overlay">
       <div class="confirm-card">
         <h3>Ready to Save?</h3>
-        <p>Are you sure you want to create this quiz? It will be visible to other players.</p>
-
         <div class="confirm-actions">
-          <button class="confirm-btn-secondary" @click="showConfirmModal = false">No, keep editing</button>
-          <button class="confirm-btn-primary" @click="confirmSave">Yes, create quiz</button>
+          <button class="confirm-btn-secondary" @click="showConfirmModal = false">No</button>
+          <button class="confirm-btn-primary" @click="confirmSave">Yes</button>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
-
 <style scoped>
+/* MODAL OVERLAY & CARD */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(3px);
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5); display: flex; align-items: center;
+  justify-content: center; z-index: 1000; backdrop-filter: blur(3px);
 }
-
 .creator-card {
-  background: white;
-  width: 90%;
-  max-width: 800px;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-  animation: modal-pop 0.3s ease-out;
+  background: var(--card-bg); width: 90%; max-width: 800px;
+  border-radius: 12px; display: flex; flex-direction: column;
+  max-height: 90vh; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
-
-@keyframes modal-pop {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-/* Header */
 .card-header {
-  padding: 1.5rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #f3f4f6;
-  background: white;
-  z-index: 10;
+  padding: 1.5rem 2rem; display: flex; justify-content: space-between;
+  align-items: center; border-bottom: 1px solid var(--color-border);
 }
+.close-btn { background: none; border: none; font-size: 2rem; color: var(--color-text); cursor: pointer; opacity: 0.5; }
+.close-btn:hover { opacity: 1; }
 
-.card-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #9ca3af;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-}
-
-.close-btn:hover {
-  color: #6b7280;
-}
-
-/* Form Body */
-.form-body {
-  padding: 2rem;
-  overflow-y: auto;
-}
-
-.input-group {
-  margin-bottom: 1.5rem;
-}
-.input-group.sm-mb {
-  margin-bottom: 1rem;
-}
-
-.input-group label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #4b5563;
-  margin-bottom: 0.5rem;
-}
-
-.input-group input,
-.input-group textarea {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background-color: #f9fafb;
-  font-size: 0.95rem;
-  color: #1f2937;
-  transition: all 0.2s;
+.form-body { padding: 2rem; overflow-y: auto; }
+.input-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; }
+.input-group label { font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text); }
+input, textarea {
+  padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 6px;
+  background: var(--color-background-soft); color: var(--color-text);
   font-family: inherit;
 }
 
-.input-group input:focus,
-.input-group textarea:focus {
-  outline: none;
-  border-color: #8b5cf6;
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+/* PUBLIC/PRIVATE SWITCH */
+.status-row {
+  flex-direction: row; justify-content: space-between; align-items: center;
+  background: var(--color-background-soft); padding: 1rem; border-radius: 8px;
 }
-
-.input-group textarea {
-  resize: vertical;
-  min-height: 80px;
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc; transition: .4s; border-radius: 34px;
 }
-
-/* Questions Section */
-.questions-section {
-  margin-top: 2rem;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 1.5rem;
+.slider:before {
+  position: absolute; content: ""; height: 18px; width: 18px;
+  left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%;
 }
+input:checked + .slider { background-color: #8b5cf6; }
+input:checked + .slider:before { transform: translateX(24px); }
 
-.questions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
+/* QUESTIONS SECTION */
+.questions-section { margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 1.5rem; }
+.questions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .add-question-btn {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
+  background: #8b5cf6; color: white; border: none; padding: 0.6rem 1.2rem;
+  border-radius: 6px; cursor: pointer; font-weight: 600; transition: opacity 0.2s;
 }
+.add-question-btn:hover { opacity: 0.9; }
 
-.questions-empty-state {
-  background-color: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 3rem;
-  text-align: center;
-  color: #6b7280;
-}
-
-/* Question Card Styles */
 .question-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background: var(--color-background-soft); border: 1px solid var(--color-border);
+  border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; position: relative;
 }
-
 .question-header-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;
 }
+.question-number { font-weight: 700; color: #8b5cf6; font-size: 1rem; }
 
-.question-number {
-  font-weight: 700;
-  color: #8b5cf6;
-  font-size: 0.9rem;
+/* REMOVE BUTTON STYLE */
+.remove-q-btn {
+  background: rgba(239, 68, 68, 0.1); color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2); width: 30px; height: 30px;
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1.2rem; transition: all 0.2s;
 }
+.remove-q-btn:hover { background: #ef4444; color: white; }
 
-.remove-btn {
-  color: #ef4444;
-  background: none;
-  border: none;
-  font-size: 0.8rem;
-  cursor: pointer;
-  text-decoration: underline;
-}
+.question-input { width: 100%; margin-bottom: 1rem; font-weight: 500; }
 
-.question-input {
-  font-weight: 600;
-}
+/* GRID LOGIC */
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
 
-.options-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+@media (max-width: 600px) {
+  .options-grid { grid-template-columns: 1fr; }
+  .creator-card { width: 95%; max-height: 95vh; }
+  .form-body { padding: 1rem; }
+  .card-header, .card-footer { padding: 1rem; }
 }
 
 .option-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #f9fafb;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid transparent;
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem;
+  border-radius: 6px; border: 1px solid transparent; transition: background 0.2s;
 }
+.option-item input[type="text"] { flex: 1; padding: 0.5rem; }
+.option-item.is-correct { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
 
-.option-item.is-correct {
-  border-color: #10b981;
-  background-color: #ecfdf5;
-}
-
-.option-item input[type="radio"] {
-  width: auto;
-  margin: 0;
-  cursor: pointer;
-  accent-color: #10b981;
-}
-
-/* Error Banner */
-.error-banner {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  padding: 0.75rem 2rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  border-top: 1px solid #fecaca;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Footer */
+/* FOOTER */
 .card-footer {
-  padding: 1.5rem 2rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #f3f4f6;
-  display: flex;
-  gap: 1rem;
+  padding: 1.5rem 2rem; background: var(--color-background-soft);
+  border-top: 1px solid var(--color-border); display: flex; gap: 1rem;
 }
-
 .save-btn {
-  flex: 1;
-  background: linear-gradient(90deg, #8b5cf6, #3b82f6);
-  color: white;
-  border: none;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  flex: 2; background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+  color: white; border: none; padding: 0.75rem; border-radius: 6px;
+  font-weight: 600; cursor: pointer;
 }
-
 .cancel-btn {
-  background-color: #e5e7eb;
-  color: #4b5563;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
+  flex: 1; background: var(--color-border); color: var(--color-text);
+  border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer;
 }
 
-.cancel-btn:hover {
-  background-color: #d1d5db;
-}
+.error-banner { background: #fee2e2; color: #b91c1c; padding: 1rem; text-align: center; font-weight: 500; }
 
-/* Confirm Modal Styles */
+/* CONFIRM MODAL */
 .confirm-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-  backdrop-filter: blur(2px);
-  border-radius: 12px; /* Aby neprekračovalo rohy rodiča */
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4); display: flex; align-items: center;
+  justify-content: center; z-index: 1100; backdrop-filter: blur(2px);
 }
-
 .confirm-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-  animation: modal-pop 0.2s ease-out;
+  background: var(--card-bg); padding: 2rem; border-radius: 12px;
+  text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); color: var(--color-text);
 }
-
-.confirm-card h3 {
-  margin-bottom: 0.5rem;
-  color: #1f2937;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.confirm-card p {
-  color: #6b7280;
-  margin-bottom: 1.5rem;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.confirm-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.confirm-btn-primary {
-  background: linear-gradient(90deg, #8b5cf6, #3b82f6);
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.confirm-btn-primary:hover {
-  opacity: 0.9;
-}
-
-.confirm-btn-secondary {
-  background: transparent;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.confirm-btn-secondary:hover {
-  background: #f9fafb;
-  color: #374151;
-  border-color: #d1d5db;
-}
+.confirm-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+.confirm-btn-primary { background: #8b5cf6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; flex: 1; }
+.confirm-btn-secondary { background: none; border: 1px solid var(--color-border); color: var(--color-text); padding: 10px 20px; border-radius: 8px; cursor: pointer; flex: 1; }
 </style>
