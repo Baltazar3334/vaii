@@ -80,9 +80,14 @@ provide('triggerRefresh', triggerRefresh)
 header {
   line-height: 1.5;
   max-height: 100vh;
-  background-color: #f8f9fa; /* Light gray background */
+  background-color: var(--header-bg);
   padding: 1rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-border);
+  /* FIXED NAVBAR LOGIC */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 nav {

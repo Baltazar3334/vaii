@@ -115,21 +115,21 @@ onMounted(() => {
             <div class="stat-icon">🏆</div>
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.created }}</span>
-              <span class="stat-label">Quizzes {{ isOwnProfile ? 'Created' : '' }}</span>
+              <span class="stat-label"> Quizzes {{ isOwnProfile ? 'Created' : '' }}</span>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">🎮</div>
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.plays }}</span>
-              <span class="stat-label">Total Plays</span>
+              <span class="stat-label"> Total Plays</span>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">@</div>
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.questions }}</span>
-              <span class="stat-label">Questions Written</span>
+              <span class="stat-label"> Questions Written</span>
             </div>
           </div>
         </div>
@@ -143,7 +143,6 @@ onMounted(() => {
 
       <div v-if="isLoading" class="loading-state">Loading quizzes...</div>
       <div v-else-if="userQuizzes.length === 0" class="empty-state">
-        <div class="trophy-icon">🏆</div>
         <h3>No quizzes yet</h3>
       </div>
 

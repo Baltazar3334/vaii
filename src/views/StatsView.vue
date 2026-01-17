@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router' // PRIDANÉ
+import { useRouter } from 'vue-router'
 
-const router = useRouter() // PRIDANÉ
+const router = useRouter()
 const leaderboard = ref([])
 const isLoading = ref(true)
 const sortBy = ref('total_plays_received')
@@ -14,9 +14,7 @@ const fetchStats = async () => {
     if (result.success) {
       leaderboard.value = result.leaderboard.map(user => ({
         ...user,
-        // Výpočet metriky: Priemerný počet otázok na kvíz
         avg_questions: user.quizzes_created > 0 ? (user.total_questions / user.quizzes_created).toFixed(1) : 0,
-        // Engagement index (vážený pomer odohratí k počtu kvízov)
         popularity: user.quizzes_created > 0 ? Math.round(user.total_plays_received / user.quizzes_created) : 0
       }))
     }
