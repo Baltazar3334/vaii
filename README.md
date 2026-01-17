@@ -1,38 +1,47 @@
-# vaii
+# QuizMaker - Semestrálna práca VAII
 
-This template should help get you started developing with Vue 3 in Vite.
+Aplikácia na tvorbu, správu a hranie interaktívnych kvízov. Systém umožňuje používateľom registrovať sa, vytvárať vlastné kvízy s viacerými otázkami a hrať kvízy vytvorené komunitou.
 
-## Recommended IDE Setup
+## Inštalácia a spustenie
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+### Prerekvizity
+- **Docker** a **Docker Compose**
+- **Node.js** (verzia 20+) a **npm**
 
-## Recommended Browser Setup
+### Postup spustenia
+1. **Spustenie Backend-u (Docker):**
+   V koreňovom priečinku projektu spustite príkaz:
+   ```sh
+   docker-compose up -d
+   ```
+   Tento príkaz spustí MySQL databázu (port 3306) a PHP server (port 8000). Databáza sa automaticky zinicializuje súborom `backend/init.sql`.
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+2. **Spustenie Frontend-u (Vite):**
+   V novom termináli vykonajte:
+   ```sh
+   npm install
+   npm run dev
+   ```
+   Aplikácia bude dostupná na adrese `http://localhost:5173` (alebo podľa výpisu v termináli).
 
-## Customize configuration
+## 📊 Splnenie požiadaviek zadania
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+Aplikácia spĺňa všetky povinné kritériá:
 
-## Project Setup
+- **Oddelenie vrstiev:** Striktné rozdelenie na prezentačnú časť (Vue.js) a aplikačnú logiku (PHP Controllers).
+- **Dynamické stránky (5):** Domov, Prihlásenie/Registrácia, Hranie kvízu, Profil používateľa, Nastavenia.
+- **Databázové entity (3+Users):**
+    1. `quizzes` (hlavička kvízu)
+    2. `questions` (otázky)
+    3. `question_options` (možnosti odpovedí)
+       *Pozn: Tabuľka `users` sa do počtu 3 entít neráta.*
+- **Vzťahy v DB:** Implementované vzťahy 1:N (Kvíz -> Otázky) a 1:N (Otázka -> Odpovede).
+- **CRUD operácie:** Plne implementované nad entitou `quizzes` (Vytvorenie, Čítanie, Úprava, Mazanie) aj `questions`.
+- **Bezpečnosť:**
+    - Heslá sú hashované pomocou `password_hash()`.
+    - Ochrana proti SQL Injection pomocou PDO Prepared Statements.
+    - Endpoindy v `api.php` overujú existenciu session pri chránených akciách.
+- **Responzivita:** Použitie CSS Grid a Flexboxu s Media Queries pre plnú funkčnosť na mobilných zariadeniach.
+- **Technológie:** Vue 3 (Composition API), PHP 8.2 (OOP prístup), MySQL, Docker.
 
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
+*Vypracované s podporou nástrojov generatívnej AI pri návrhu CSS layoutu a typeScript kódom*

@@ -10,6 +10,7 @@ const emit = defineEmits(['close', 'saved'])
 const isEditMode = !!props.editData
 const quizTitle = ref(props.editData?.title || '')
 const quizDescription = ref(props.editData?.description || '')
+const quizImageUrl = ref(props.editData?.image_url || '')
 const isPublic = ref(props.editData ? Boolean(Number(props.editData.is_public)) : true)
 const questions = ref([])
 const errorMessage = ref('')
@@ -19,10 +20,12 @@ const showConfirmModal = ref(false)
 const fetchQuestionsForEdit = async () => {
   if (!isEditMode) return
   try {
-    const response = await fetch(`http://localhost:8000/backend/api.php?action=get_quiz_details&id=${props.editData.id}`)
+    const response = await fetch(`http://localhost:8000/backend/api.php?action=get_quiz_details&id=${props.editData.id}`, {
+      credentials: 'include'
+    })
     const result = await response.json()
     if (result.success) {
-      // Namapujeme dáta späť na formát pre formulár
+      quizImageUrl.value = result.quiz.image_url || ''
       questions.value = result.questions.map(q => ({
         id: q.id,
         text: q.question_text,
@@ -54,11 +57,11 @@ const handleSaveClick = () => { if (validateForm()) showConfirmModal.value = tru
 
 const confirmSave = async () => {
   const user = JSON.parse(localStorage.getItem('user'))
-
   const quizData = {
     user_id: user.id,
     title: quizTitle.value,
     description: quizDescription.value,
+    image_url: quizImageUrl?.value || null,
     is_public: isPublic.value,
     questions: questions.value.map(q => ({
       text: q.text,
@@ -71,8 +74,12 @@ const confirmSave = async () => {
   try {
     const response = await fetch(`http://localhost:8000/backend/api.php?action=save_quiz`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(quizData)
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(quizData),
+      credentials: 'include' // EXTRÉMNE DÔLEŽITÉ
     })
     const result = await response.json()
     if (result.success) {
@@ -95,6 +102,14 @@ const confirmSave = async () => {
         <div class="input-group">
           <label>Quiz Title</label>
           <input type="text" v-model="quizTitle" placeholder="Enter title" />
+        </div>
+
+        <div class="input-group">
+          <label>Quiz Cover Image (URL)</label>
+          <input type="text" v-model="quizImageUrl" placeholder="https://example.com/image.jpg" />
+          <div v-if="quizImageUrl" class="image-preview">
+            <img :src="quizImageUrl" alt="Preview" @error="quizImageUrl = ''" />
+          </div>
         </div>
 
         <div class="input-group">
@@ -187,6 +202,9 @@ input, textarea {
   background: var(--color-background-soft); color: var(--color-text);
   font-family: inherit;
 }
+
+.image-preview { margin-top: 0.5rem; border-radius: 8px; overflow: hidden; height: 120px; border: 1px solid var(--color-border); }
+.image-preview img { width: 100%; height: 100%; object-fit: cover; }
 
 /* PUBLIC/PRIVATE SWITCH */
 .status-row {

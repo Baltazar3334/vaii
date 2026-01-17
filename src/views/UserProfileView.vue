@@ -42,7 +42,8 @@ const handleDelete = async () => {
     const response = await fetch('http://localhost:8000/backend/api.php?action=delete_quiz', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quiz_id: quizToDelete.value.id, user_id: user.value.id })
+      body: JSON.stringify({ quiz_id: quizToDelete.value.id, user_id: user.value.id }),
+      credentials: 'include'
     })
     if ((await response.json()).success) {
       userQuizzes.value = userQuizzes.value.filter(q => q.id !== quizToDelete.value.id)

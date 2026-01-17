@@ -19,7 +19,8 @@ const handleResetAccount = async () => {
     const response = await fetch('http://localhost:8000/backend/api.php?action=reset_account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: user.value.id })
+      body: JSON.stringify({ user_id: user.value.id }),
+      credentials: 'include'
     })
     const result = await response.json()
     if (result.success) {

@@ -30,12 +30,14 @@ const handleSubmit = async () => {
   const action = isLogin.value ? 'login' : 'register'
 
   try {
-    const response = await fetch('http://localhost:8000/backend/api.php?action=${action}', {
+    // Používame úvodzovky ` (backticks) pre správnu interpoláciu premennej ${action}
+    const response = await fetch(`http://localhost:8000/backend/api.php?action=${action}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      credentials: 'include'
     })
 
     const result = await response.json()
@@ -111,10 +113,23 @@ const handleSubmit = async () => {
 
 <style scoped>
 
+.auth-container {
+  min-height: calc(100vh - 70px); /* Odpočítame výšku headera */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+  font-family: 'Inter', sans-serif;
+  padding: 2rem;
+  box-sizing: border-box;
+}
 
 .header {
   text-align: center;
   margin-bottom: 2rem;
+  width: 100%;
 }
 
 .logo-icon {

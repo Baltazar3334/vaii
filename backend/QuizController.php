@@ -25,7 +25,7 @@ class QuizController {
     }
 
     public function getDetails($id) {
-        $stmt = $this->db->prepare("SELECT id, title, description FROM quizzes WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT id, title, description, image_url FROM quizzes WHERE id = :id");
         $stmt->execute(['id' => $id]);
         $quiz = $stmt->fetch();
         if (!$quiz) return ['success' => false, 'message' => 'Quiz not found'];
@@ -46,13 +46,24 @@ class QuizController {
         try {
             $this->db->beginTransaction();
             if ($quizId) {
-                $stmt = $this->db->prepare("UPDATE quizzes SET title = :t, description = :d, is_public = :p WHERE id = :id AND user_id = :uid");
-                $stmt->execute(['t' => $data['title'], 'd' => $data['description'], 'p' => $data['is_public'] ? 1 : 0, 'id' => $quizId, 'uid' => $data['user_id']]);
-                $stmtDel = $this->db->prepare("DELETE FROM questions WHERE quiz_id = :id");
-                $stmtDel->execute(['id' => $quizId]);
+                $stmt = $this->db->prepare("UPDATE quizzes SET title = :t, description = :d, is_public = :p, image_url = :img WHERE id = :id AND user_id = :uid");
+                $stmt->execute([
+                    't' => $data['title'],
+                    'd' => $data['description'],
+                    'p' => $data['is_public'] ? 1 : 0,
+                    'img' => $data['image_url'] ?? null,
+                    'id' => $quizId,
+                    'uid' => $data['user_id']
+                ]);
             } else {
-                $stmt = $this->db->prepare("INSERT INTO quizzes (user_id, title, description, is_public) VALUES (:uid, :t, :d, :p)");
-                $stmt->execute(['uid' => $data['user_id'], 't' => $data['title'], 'd' => $data['description'], 'p' => $data['is_public'] ? 1 : 0]);
+                $stmt = $this->db->prepare("INSERT INTO quizzes (user_id, title, description, is_public, image_url) VALUES (:uid, :t, :d, :p, :img)");
+                $stmt->execute([
+                    'uid' => $data['user_id'],
+                    't' => $data['title'],
+                    'd' => $data['description'],
+                    'p' => $data['is_public'] ? 1 : 0,
+                    'img' => $data['image_url'] ?? null
+                ]);
                 $quizId = $this->db->lastInsertId();
             }
 

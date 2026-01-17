@@ -1,11 +1,17 @@
 <?php
-session_start();
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Content-Type: application/json");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+ini_set('session.cookie_samesite', 'Lax');
+session_start();
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once 'db.php';
 require_once 'QuizController.php';
@@ -15,7 +21,7 @@ $db = Database::getInstance();
 $quizCtrl = new QuizController($db);
 $authCtrl = new AuthController($db);
 
-$action = $_GET['action'] ?? '';
+$action = isset($_GET['action']) ? trim($_GET['action']) : '';
 $data = json_decode(file_get_contents("php://input"), true);
 
 $protected_actions = ['save_quiz', 'delete_quiz', 'reset_account'];

@@ -48,6 +48,9 @@ onMounted(fetchQuizzes)
 
       <div v-else class="quiz-grid">
         <div v-for="quiz in filteredQuizzes" :key="quiz.id" class="quiz-card">
+          <div class="card-image" v-if="quiz.image_url">
+            <img :src="quiz.image_url" alt="Quiz cover" />
+          </div>
           <div class="card-body">
             <h3>{{ quiz.title }}</h3>
             <p class="description">{{ quiz.description }}</p>
@@ -73,6 +76,9 @@ onMounted(fetchQuizzes)
 h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 10px; color: white; }
 .subtitle { color: rgba(255, 255, 255, 0.8); font-size: 1rem; margin-bottom: 2rem; }
 
+.card-image { width: 100%; height: 150px; overflow: hidden; border-bottom: 1px solid var(--color-border); }
+.card-image img { width: 100%; height: 100%; object-fit: cover; }
+
 .search-input {
   width: 100%; padding: 12px 20px; border-radius: 8px; border: none;
   background-color: rgba(255, 255, 255, 0.2); color: white; font-size: 1rem;
@@ -85,18 +91,14 @@ h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; al
 .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; max-width: 1200px; width: 100%; }
 
 .quiz-card {
-  background: var(--card-bg); border-radius: 12px; padding: 1.5rem;
+  background: var(--card-bg); border-radius: 12px; padding: 0; /* Zmenené z 1.5rem na 0 kvôli obrázku */
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column;
-  justify-content: space-between; gap: 1.5rem; transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid var(--color-border);
+  justify-content: space-between; gap: 0; transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--color-border); overflow: hidden;
 }
 .quiz-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
 
-.card-body {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+.card-body { padding: 1.5rem; overflow: hidden; display: flex; flex-direction: column; }
 
 .card-body h3 {
   font-size: 1.1rem;
