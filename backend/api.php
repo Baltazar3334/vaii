@@ -1,37 +1,46 @@
 <?php
 
+// Nastavenie CORS hlavičiek pre komunikáciu s frontendom
 header("Access-Control-Allow-Origin: http://localhost:5173");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
+// Konfigurácia session a spustenie relácie
 ini_set('session.cookie_samesite', 'Lax');
 session_start();
 
+// Spracovanie predbežnej požiadavky OPTIONS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
+// Import potrebných tried pre databázu a kontroléry
 require_once 'db.php';
 require_once 'QuizController.php';
 require_once 'AuthController.php';
 
+// Inicializácia inštancií tried
 $db = Database::getInstance();
 $quizCtrl = new QuizController($db);
 $authCtrl = new AuthController($db);
 
+// Získanie akcie z URL parametra a dát z tela požiadavky
 $action = isset($_GET['action']) ? trim($_GET['action']) : '';
 $data = json_decode(file_get_contents("php://input"), true);
 
+// Zoznam akcií, ktoré vyžadujú prihláseného používateľa
 $protected_actions = ['save_quiz', 'delete_quiz', 'reset_account'];
 
+// Kontrola autorizácie pre chránené akcie
 if (in_array($action, $protected_actions) && !isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
+// Smerovanie požiadaviek na základe parametra action
 switch ($action) {
     case 'login':
         echo json_encode($authCtrl->login($data['email'], $data['password']));
@@ -73,8 +82,10 @@ switch ($action) {
         echo json_encode($authCtrl->updatePassword($data['user_id'], $data['new_password']));
         break;
     case 'check_auth':
+        // Overenie aktuálneho stavu prihlásenia zo session
         echo json_encode(['logged_in' => isset($_SESSION['user_id']), 'user' => $_SESSION['user_id'] ? ['id' => $_SESSION['user_id'], 'username' => $_SESSION['username']] : null]);
         break;
     default:
+        // Odpoveď v prípade neznámej akcie
         echo json_encode(['success' => false, 'message' => 'Action not found']);
 }

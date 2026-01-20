@@ -7,23 +7,24 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
+// Inicializácia stavov na základe toho, či ide o tvorbu alebo editáciu
 const isEditMode = !!props.editData
 const quizTitle = ref(props.editData?.title || '')
 const quizDescription = ref(props.editData?.description || '')
 const quizImageUrl = ref(props.editData?.image_url || '')
 const isPublic = ref(props.editData ? Boolean(Number(props.editData.is_public)) : true)
-const questions = ref([]) // Inicializujeme ako prázdne pole
+const questions = ref([])
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
 
-// Ak upravujeme, musíme stiahnuť aj otázky z DB
+// Načítanie existujúcich otázok pri editácii kvízu
 const fetchQuestionsForEdit = async () => {
   if (!isEditMode) {
-    // Ak sme v režime tvorby, začneme s jednou prázdnou otázkou
+    // Ak ide o nový kvíz, pripraví sa jedna prázdna otázka
     questions.value = [{ id: Date.now(), text: '', options: ['', '', '', ''], correctAnswer: 0 }]
     return
   }
-  
+
   try {
     const response = await fetch(`http://localhost:8000/backend/api.php?action=get_quiz_details&id=${props.editData.id}`, {
       credentials: 'include'
@@ -31,7 +32,6 @@ const fetchQuestionsForEdit = async () => {
     const result = await response.json()
     if (result.success) {
       quizImageUrl.value = result.quiz.image_url || ''
-      // Prepíšeme pole, nepridávame k nemu
       questions.value = result.questions.map(q => ({
         id: q.id,
         text: q.question_text,
@@ -44,13 +44,16 @@ const fetchQuestionsForEdit = async () => {
 
 onMounted(fetchQuestionsForEdit)
 
+// Pridanie novej prázdnej otázky do zoznamu
 const handleAddQuestion = () => {
   questions.value.push({ id: Date.now(), text: '', options: ['', '', '', ''], correctAnswer: 0 })
   if (errorMessage.value) errorMessage.value = ''
 }
 
+// Odstránenie otázky podľa indexu
 const removeQuestion = (index) => { questions.value.splice(index, 1) }
 
+// Základná validácia povinných polí pred uložením
 const validateForm = () => {
   if (!quizTitle.value.trim() || !quizDescription.value.trim() || questions.value.length === 0) {
     errorMessage.value = 'Please fill in title, description and at least one question.';
@@ -59,8 +62,10 @@ const validateForm = () => {
   return true;
 }
 
+// Zobrazenie potvrdzovacieho dialógu
 const handleSaveClick = () => { if (validateForm()) showConfirmModal.value = true; }
 
+// Odoslanie dát kvízu na backend (INSERT alebo UPDATE)
 const confirmSave = async () => {
   const user = JSON.parse(localStorage.getItem('user'))
   const quizData = {
@@ -75,6 +80,7 @@ const confirmSave = async () => {
       correctAnswer: q.correctAnswer
     }))
   }
+  // Ak editujeme, pribalíme ID kvízu
   if (isEditMode) quizData.quiz_id = props.editData.id
 
   try {
@@ -85,11 +91,11 @@ const confirmSave = async () => {
         'Accept': 'application/json'
       },
       body: JSON.stringify(quizData),
-      credentials: 'include' // EXTRÉMNE DÔLEŽITÉ
+      credentials: 'include' // Dôležité pre overenie session (cookies)
     })
     const result = await response.json()
     if (result.success) {
-      emit('saved')
+      emit('saved') // Signalizácia úspechu rodičovskému komponentu
       emit('close')
     } else { alert(result.message) }
   } catch (e) { console.error(e) }
@@ -97,6 +103,7 @@ const confirmSave = async () => {
 </script>
 
 <template>
+  <!-- Prekrytie pozadia (overlay) modálneho okna -->
   <div class="modal-overlay" @click.self="emit('close')">
     <div class="creator-card">
       <div class="card-header">
@@ -105,6 +112,7 @@ const confirmSave = async () => {
       </div>
 
       <div class="form-body">
+        <!-- Základné informácie o kvíze -->
         <div class="input-group">
           <label>Quiz Title</label>
           <input type="text" v-model="quizTitle" placeholder="Enter title" />
@@ -123,7 +131,7 @@ const confirmSave = async () => {
           <textarea v-model="quizDescription" placeholder="Description" rows="3"></textarea>
         </div>
 
-        <!-- PEKNÝ FIALOVÝ SWITCH -->
+        <!-- Prepínač viditeľnosti (Verejný/Súkromný) -->
         <div class="input-group status-row">
           <label>Public Visibility</label>
           <label class="switch">
@@ -132,7 +140,7 @@ const confirmSave = async () => {
           </label>
         </div>
 
-        <!-- PÔVODNÁ SEKCIA OTÁZOK -->
+        <!-- Dynamická sekcia pre správu otázok -->
         <div class="questions-section">
           <div class="questions-header">
             <label>Questions ({{ questions.length }})</label>
@@ -142,6 +150,7 @@ const confirmSave = async () => {
           <div v-if="questions.length === 0" class="questions-empty-state">No questions yet.</div>
 
           <div v-else class="questions-list">
+            <!-- Iterácia cez všetky pridané otázky -->
             <div v-for="(question, qIndex) in questions" :key="qIndex" class="question-card">
               <div class="question-header-row">
                 <span class="question-number">Question {{ qIndex + 1 }}</span>
@@ -149,6 +158,7 @@ const confirmSave = async () => {
               </div>
               <input v-model="question.text" placeholder="What is the question?" class="question-input" />
 
+              <!-- Mriežka pre možnosti odpovedí (vždy 4) -->
               <div class="options-grid">
                 <div v-for="(option, oIndex) in question.options" :key="oIndex" class="option-item" :class="{ 'is-correct': question.correctAnswer === oIndex }">
                   <input type="radio" :name="'correct-' + qIndex" :value="oIndex" v-model="question.correctAnswer" />
@@ -160,6 +170,7 @@ const confirmSave = async () => {
         </div>
       </div>
 
+      <!-- Zobrazenie chybového hlásenia pri neúspešnej validácii -->
       <div v-if="errorMessage" class="error-banner">⚠️ {{ errorMessage }}</div>
 
       <div class="card-footer">
@@ -168,7 +179,7 @@ const confirmSave = async () => {
       </div>
     </div>
 
-    <!-- Confirm Modal -->
+    <!-- Vnútorné potvrdenie pred finálnym uložením -->
     <div v-if="showConfirmModal" class="confirm-overlay">
       <div class="confirm-card">
         <h3>Ready to Save?</h3>
@@ -182,7 +193,7 @@ const confirmSave = async () => {
 </template>
 
 <style scoped>
-/* MODAL OVERLAY & CARD */
+/* Štýlovanie modálneho prekrytia a karty */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.5); display: flex; align-items: center;
@@ -199,7 +210,7 @@ const confirmSave = async () => {
 }
 .close-btn { background: none; border: none; font-size: 2rem; color: var(--color-text); cursor: pointer; opacity: 0.5; }
 .close-btn:hover { opacity: 1; }
-
+/* Prvky formulára */
 .form-body { padding: 2rem; overflow-y: auto; }
 .input-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; }
 .input-group label { font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text); }
@@ -217,6 +228,7 @@ input, textarea {
   flex-direction: row; justify-content: space-between; align-items: center;
   background: var(--color-background-soft); padding: 1rem; border-radius: 8px;
 }
+/* Štýlovanie prepínača pre viditeľnosť */
 .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider {
@@ -239,6 +251,7 @@ input:checked + .slider:before { transform: translateX(24px); }
 }
 .add-question-btn:hover { opacity: 0.9; }
 
+/* Sekcia pre otázky */
 .question-card {
   background: var(--color-background-soft); border: 1px solid var(--color-border);
   border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; position: relative;
@@ -259,7 +272,6 @@ input:checked + .slider:before { transform: translateX(24px); }
 
 .question-input { width: 100%; margin-bottom: 1rem; font-weight: 500; }
 
-/* GRID LOGIC */
 .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
 
 @media (max-width: 600px) {
@@ -274,9 +286,9 @@ input:checked + .slider:before { transform: translateX(24px); }
   border-radius: 6px; border: 1px solid transparent; transition: background 0.2s;
 }
 .option-item input[type="text"] { flex: 1; padding: 0.5rem; }
+/* Zvýraznenie správnej možnosti */
 .option-item.is-correct { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
 
-/* FOOTER */
 .card-footer {
   padding: 1.5rem 2rem; background: var(--color-background-soft);
   border-top: 1px solid var(--color-border); display: flex; gap: 1rem;
@@ -293,7 +305,6 @@ input:checked + .slider:before { transform: translateX(24px); }
 
 .error-banner { background: #fee2e2; color: #b91c1c; padding: 1rem; text-align: center; font-weight: 500; }
 
-/* CONFIRM MODAL */
 .confirm-overlay {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.4); display: flex; align-items: center;

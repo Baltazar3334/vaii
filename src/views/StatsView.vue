@@ -2,19 +2,24 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+// Inicializácia smerovača a reaktívnych stavov
 const router = useRouter()
 const leaderboard = ref([])
 const isLoading = ref(true)
-const sortBy = ref('total_plays_received')
+const sortBy = ref('total_plays_received') // Predvolené kritérium triedenia
 
+// Funkcia na načítanie celkových štatistík z backendu
 const fetchStats = async () => {
   try {
     const response = await fetch('http://localhost:8000/backend/api.php?action=get_leaderboard')
     const result = await response.json()
     if (result.success) {
+      // Obohatenie surových dát o vypočítané metriky (priemer a popularita)
       leaderboard.value = result.leaderboard.map(user => ({
         ...user,
+        // Výpočet priemerného počtu otázok na jeden kvíz
         avg_questions: user.quizzes_created > 0 ? (user.total_questions / user.quizzes_created).toFixed(1) : 0,
+        // Výpočet popularity (priemerný počet odohraní na jeden kvíz)
         popularity: user.quizzes_created > 0 ? Math.round(user.total_plays_received / user.quizzes_created) : 0
       }))
     }
@@ -22,36 +27,42 @@ const fetchStats = async () => {
   finally { isLoading.value = false }
 }
 
+// Dynamicky zoradený zoznam používateľov na základe zvoleného kritéria
 const sortedLeaderboard = computed(() => {
   return [...leaderboard.value].sort((a, b) => b[sortBy.value] - a[sortBy.value])
 })
 
+// Určenie maximálneho počtu odohraní pre potreby vizualizácie pomerov (progress barov)
 const maxPlays = computed(() => Math.max(...leaderboard.value.map(u => u.total_plays_received), 1))
 
+// Spustenie sťahovania dát pri načítaní komponentu
 onMounted(fetchStats)
 </script>
-
 <template>
   <div class="stats-container">
     <div class="stats-card">
+      <!-- Hlavička stránky so štatistikami -->
       <div class="header-section">
         <span class="badge">Live Stats</span>
         <h1>Community Leaderboard</h1>
         <p>Top creators making the most impact</p>
       </div>
 
+      <!-- Panel pre voľbu kritéria triedenia rebríčka -->
       <div class="sort-bar">
         <div v-for="opt in [
           {id: 'total_plays_received', label: '🔥 Popularity', hint: 'Total times other users played your quizzes.'},
           {id: 'quizzes_created', label: '📚 Content', hint: 'Number of unique quizzes you have created.'},
           {id: 'total_questions', label: '✍️ Effort', hint: 'Total number of questions written across all your quizzes.'}
         ]" :key="opt.id" class="sort-item">
-          <button 
-            :class="{ active: sortBy === opt.id }" 
-            @click="sortBy = opt.id"
+          <!-- Tlačidlo prepínajúce reaktívnu premennú sortBy -->
+          <button
+              :class="{ active: sortBy === opt.id }"
+              @click="sortBy = opt.id"
           >
             {{ opt.label }}
           </button>
+          <!-- Nápoveda (tooltip) vysvetľujúca danú metriku -->
           <div class="tooltip-trigger">
             ?
             <span class="tooltip-text">{{ opt.hint }}</span>
@@ -59,13 +70,16 @@ onMounted(fetchStats)
         </div>
       </div>
 
+      <!-- Vizuálny indikátor načítavania dát -->
       <div v-if="isLoading" class="loader">
         <div class="spinner"></div>
         <p>Calculating rankings...</p>
       </div>
 
+      <!-- Zoznam používateľov v poradí podľa vybraného rankingu -->
       <div v-else class="ranking-list">
         <div v-for="(user, index) in sortedLeaderboard" :key="user.username" class="rank-item">
+          <!-- Vizuálne označenie prvých troch miest medailami -->
           <div class="rank-number" :class="'pos-' + (index + 1)">
             <template v-if="index === 0">🥇</template>
             <template v-else-if="index === 1">🥈</template>
@@ -73,21 +87,22 @@ onMounted(fetchStats)
             <template v-else>{{ index + 1 }}</template>
           </div>
 
-          <!-- PRIDANÝ MINI AVATAR -->
+          <!-- Malý náhľad profilu používateľa -->
           <div class="mini-avatar">
             <img v-if="user.avatar_url" :src="user.avatar_url" alt="" @error="user.avatar_url = null" />
             <span v-else>{{ user.username.charAt(0).toUpperCase() }}</span>
           </div>
-          
+
+          <!-- Hlavná časť s menom, prepojením na profil a lištou popularity -->
           <div class="user-main">
             <div class="user-info">
-              <!-- ZMENA: Pridaná trieda 'name-link' a router.push -->
               <span class="name name-link" @click="router.push('/profile/' + user.user_id)">
                 {{ user.username }}
               </span>
               <span class="avg">Avg. {{ user.avg_questions }} questions / quiz</span>
             </div>
 
+            <!-- Lišta zobrazujúca pomernú popularitu voči najlepšiemu hráčovi -->
             <div class="progres-container">
               <div class="bar-bg">
                 <div class="bar-fill" :style="{ width: (user.total_plays_received / maxPlays * 100) + '%' }"></div>
@@ -96,6 +111,7 @@ onMounted(fetchStats)
             </div>
           </div>
 
+          <!-- Súhrnné čísla o tvorbe pre rýchly prehľad -->
           <div class="stats-grid">
             <div class="mini-stat">
               <span class="count">{{ user.quizzes_created }}</span>
@@ -111,9 +127,11 @@ onMounted(fetchStats)
     </div>
   </div>
 </template>
-
 <style scoped>
+/* Základné rozloženie stránky štatistík */
 .stats-container { padding: 4rem 1rem; display: flex; justify-content: center; min-height: 90vh; background-color: var(--color-background-soft); }
+
+/* Vzhľad hlavnej karty so štatistikami */
 .stats-card { background: var(--card-bg); border-radius: 24px; width: 100%; max-width: 850px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); border: 1px solid var(--color-border); padding: 3rem; }
 
 .header-section { text-align: center; margin-bottom: 3rem; }
@@ -121,13 +139,15 @@ onMounted(fetchStats)
 h1 { font-size: 2.5rem; color: var(--color-text); margin: 1rem 0 0.5rem; }
 p { color: var(--color-text); opacity: 0.6; }
 
+/* Lišta pre voľbu kritéria triedenia */
 .sort-bar { display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 3rem; align-items: center; }
 .sort-item { display: flex; align-items: center; gap: 0.5rem; position: relative; }
 
+/* Štýlovanie prepínacích tlačidiel v sort bare */
 .sort-bar button { border: none; background: var(--color-background-soft); color: var(--color-text); padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; border: 1px solid var(--color-border); }
 .sort-bar button.active { background: #8b5cf6; color: white; border-color: #8b5cf6; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
 
-/* TOOLTIP STYLES */
+/* Štýlovanie nápovedy (tooltipu) */
 .tooltip-trigger {
   width: 18px;
   height: 18px;
@@ -167,7 +187,6 @@ p { color: var(--color-text); opacity: 0.6; }
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
-/* Šípka tooltipu */
 .tooltip-text::after {
   content: "";
   position: absolute;
@@ -184,25 +203,28 @@ p { color: var(--color-text); opacity: 0.6; }
   opacity: 1;
 }
 
-.rank-item { 
-  display: grid; 
-  grid-template-columns: 60px 50px 1fr 180px; /* Zmenené z 3 na 4 stĺpce */
-  align-items: center; 
-  gap: 1.5rem; 
-  padding: 1.5rem; 
-  border-radius: 16px; 
-  margin-bottom: 1rem; 
-  background: var(--color-background-soft); 
-  transition: transform 0.2s; 
+/* Štýlovanie jednotlivého riadku v rebríčku (grid layout) */
+.rank-item {
+  display: grid;
+  grid-template-columns: 60px 50px 1fr 180px;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  margin-bottom: 1rem;
+  background: var(--color-background-soft);
+  transition: transform 0.2s;
 }
 .rank-item:hover { transform: scale(1.01); background: var(--card-bg); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
 
+/* Zvýraznenie poradia v rebríčku */
 .rank-number { font-size: 1.5rem; font-weight: 800; display: flex; justify-content: center; color: var(--color-text); opacity: 0.4; }
 .rank-number.pos-1, .rank-number.pos-2, .rank-number.pos-3 { opacity: 1; font-size: 2rem; }
 
 .user-main { display: flex; flex-direction: column; gap: 0.75rem; }
 .name { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
 
+/* Interaktívny link na meno používateľa */
 .name-link {
   cursor: pointer;
   transition: color 0.2s;
@@ -215,20 +237,24 @@ p { color: var(--color-text); opacity: 0.6; }
 
 .avg { font-size: 0.8rem; opacity: 0.5; color: var(--color-text); }
 
+/* Vizuálna lišta znázorňujúca popularitu (Plays) */
 .progres-container { display: flex; align-items: center; gap: 1rem; }
 .bar-bg { flex: 1; height: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; background: linear-gradient(90deg, #8b5cf6, #3b82f6); border-radius: 4px; }
 .value { font-size: 0.85rem; font-weight: 700; color: #10b981; white-space: nowrap; }
 
+/* Sekcia pre číselné údaje o tvorbe */
 .stats-grid { display: flex; gap: 1rem; justify-content: flex-end; }
 .mini-stat { text-align: center; background: var(--card-bg); padding: 0.5rem 1rem; border-radius: 10px; min-width: 80px; border: 1px solid var(--color-border); }
 .count { display: block; font-weight: 800; color: var(--color-text); }
 .label { font-size: 0.7rem; text-transform: uppercase; opacity: 0.5; }
 
+/* Štýlovanie načítavacieho indikátora */
 .loader { text-align: center; padding: 3rem; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(139, 92, 246, 0.1); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Malý profilový avatar v rebríčku */
 .mini-avatar {
   width: 40px;
   height: 40px;
@@ -249,10 +275,11 @@ p { color: var(--color-text); opacity: 0.6; }
   object-fit: cover;
 }
 
+/* Prispôsobenie pre mobilné zariadenia (tablety a mobily) */
 @media (max-width: 768px) {
   .stats-card { padding: 1.5rem; border-radius: 0; border: none; }
   h1 { font-size: 1.8rem; }
-  
+
   .sort-bar { flex-direction: column; width: 100%; gap: 0.5rem; }
   .sort-item { width: 100%; justify-content: space-between; background: var(--color-background-soft); padding: 0.5rem; border-radius: 10px; }
   .sort-item button { flex: 1; border: none; background: transparent; text-align: left; }
@@ -261,7 +288,7 @@ p { color: var(--color-text); opacity: 0.6; }
   .rank-item { grid-template-columns: 40px 40px 1fr; }
   .stats-grid { display: none; }
 
-  .mini-stat { 
+  .mini-stat {
     flex: 1;
     background: transparent;
     border: none;
@@ -270,7 +297,7 @@ p { color: var(--color-text); opacity: 0.6; }
 
   .rank-number { font-size: 1.2rem; }
   .rank-number.pos-1, .rank-number.pos-2, .rank-number.pos-3 { font-size: 1.5rem; }
-  
+
   .tooltip-text {
     left: auto;
     right: 0;

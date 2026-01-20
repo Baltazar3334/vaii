@@ -1,15 +1,17 @@
+/* Importovanie základných štýlov, premenných a resetov */
 @import './base.css';
 
-
+/* Nastavenie hlavného obalu aplikácie Vue */
 #app {
     width: 100%;
-    min-height: 100vh;
+    min-height: 100vh; /* Zabezpečenie minimálnej výšky cez celú obrazovku */
     margin: 0;
     padding: 0;
     font-weight: normal;
 }
 
+/* Globálne nastavenie pre všetky odkazy */
 a {
-    text-decoration: none;
-    transition: 0.4s;
+    text-decoration: none; /* Odstránenie podčiarknutia textu */
+    transition: 0.4s; /* Plynulý prechod pri zmenách stavov, napr. hover */
 }

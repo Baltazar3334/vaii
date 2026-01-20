@@ -1,28 +1,27 @@
 <script setup>
-import { ref, inject } from 'vue' // Import inject
+import { ref, inject } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const updateUser = inject('updateUser') // Inject the function from App.vue
+const updateUser = inject('updateUser')
 
 const isLogin = ref(false)
 
 const username = ref('')
 const email = ref('')
 const password = ref('')
-const errorMessage = ref('') // State for error messages
+const errorMessage = ref('')
 
 const handleSubmit = async () => {
-  errorMessage.value = '' // Reset error
+  errorMessage.value = ''
 
-  // Prepare the payload based on whether we are logging in or registering
+
   const payload = {
     action: isLogin.value ? 'login' : 'register',
     email: email.value,
     password: password.value
   }
 
-  // Add username only if registering
   if (!isLogin.value) {
     payload.username = username.value
   }
@@ -30,7 +29,6 @@ const handleSubmit = async () => {
   const action = isLogin.value ? 'login' : 'register'
 
   try {
-    // Používame úvodzovky ` (backticks) pre správnu interpoláciu premennej ${action}
     const response = await fetch(`http://localhost:8000/backend/api.php?action=${action}`, {
       method: 'POST',
       headers: {
@@ -45,8 +43,7 @@ const handleSubmit = async () => {
     if (result.success) {
       console.log('Operation successful', result.user)
       localStorage.setItem('user', JSON.stringify(result.user))
-      
-      // Notify App.vue to update the menu
+
       if (updateUser) updateUser()
 
       router.push('/profile')
@@ -59,16 +56,18 @@ const handleSubmit = async () => {
   }
 }
 </script>
-
 <template>
   <div class="auth-container">
+    <!-- Hlavička s logom a krátkym popisom aplikácie -->
     <div class="header">
       <div class="logo-icon"></div>
       <h1>QuizMaker</h1>
       <p>Create, share, and play amazing quizzes</p>
     </div>
 
+    <!-- Hlavná karta s prihlasovacím/registračným formulárom -->
     <div class="auth-card">
+      <!-- Prepínacie karty (taby) medzi registráciou a prihlásením -->
       <div class="tabs">
         <button
             :class="{ active: !isLogin }"
@@ -78,17 +77,19 @@ const handleSubmit = async () => {
             :class="{ active: isLogin }"
             @click="isLogin = true"
         >Login</button>
+        <!-- Vizuálny posuvník indikujúci aktívnu kartu -->
         <div class="slider" :class="{ 'move-right': isLogin }"></div>
       </div>
 
       <form @submit.prevent="handleSubmit">
-            
-            <!-- Add Error Message Display -->
-            <div v-if="errorMessage" style="color: red; margin-bottom: 1rem; font-size: 0.9rem;">
-              {{ errorMessage }}
-            </div>
 
-            <div class="input-group" v-if="!isLogin">
+        <!-- Zobrazenie chybovej správy v prípade neúspešnej autentifikácie -->
+        <div v-if="errorMessage" style="color: red; margin-bottom: 1rem; font-size: 0.9rem;">
+          {{ errorMessage }}
+        </div>
+
+        <!-- Pole pre meno sa zobrazuje iba počas registrácie -->
+        <div class="input-group" v-if="!isLogin">
           <label>Username</label>
           <input type="text" v-model="username" placeholder="Enter your username" required />
         </div>
@@ -103,6 +104,7 @@ const handleSubmit = async () => {
           <input type="password" v-model="password" placeholder="Enter your password" required />
         </div>
 
+        <!-- Dynamický text tlačidla podľa zvoleného režimu -->
         <button type="submit" class="submit-btn">
           {{ isLogin ? 'Login' : 'Create Account' }}
         </button>
@@ -110,11 +112,11 @@ const handleSubmit = async () => {
     </div>
   </div>
 </template>
-
 <style scoped>
 
+/* Hlavný kontajner s centrovaním a prechodovým pozadím */
 .auth-container {
-  min-height: calc(100vh - 70px); /* Odpočítame výšku headera */
+  min-height: calc(100vh - 70px);
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -126,12 +128,14 @@ const handleSubmit = async () => {
   box-sizing: border-box;
 }
 
+/* Štýlovanie uvítacej hlavičky */
 .header {
   text-align: center;
   margin-bottom: 2rem;
   width: 100%;
 }
 
+/* Ikona loga s farebným prechodom a tieňom */
 .logo-icon {
   width: 50px;
   height: 50px;
@@ -153,6 +157,7 @@ p {
   font-size: 0.95rem;
 }
 
+/* Karta formulára s efektom skleneného dizajnu (glassmorphism) */
 .auth-card {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
@@ -164,6 +169,7 @@ p {
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
+/* Navigačné taby pre prepínanie medzi Sign Up a Login */
 .tabs {
   display: flex;
   position: relative;
@@ -189,6 +195,7 @@ p {
   color: #1f2937;
 }
 
+/* Biely posuvný prvok pod textom tabov */
 .slider {
   position: absolute;
   top: 4px;
@@ -202,6 +209,7 @@ p {
   z-index: 1;
 }
 
+/* Animácia posunu slidera doprava */
 .slider.move-right {
   transform: translateX(100%);
 }
@@ -219,6 +227,7 @@ label {
   font-weight: 500;
 }
 
+/* Štýlovanie vstupných polí formulára */
 input {
   width: 100%;
   padding: 12px 16px;
@@ -230,12 +239,14 @@ input {
   transition: all 0.2s;
 }
 
+/* Zvýraznenie poľa pri zameraní (focuse) */
 input:focus {
   border-color: #8b5cf6;
   background: white;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
+/* Hlavné odosielacie tlačidlo s prechodom */
 .submit-btn {
   width: 100%;
   padding: 12px;

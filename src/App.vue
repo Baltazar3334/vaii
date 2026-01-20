@@ -3,11 +3,12 @@ import { ref, onMounted, provide } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import QuizCreatorModal from '@/components/quiz/QuizCreatorModal.vue'
 
+// Inicializácia routera a stavov pre modálne okno a prihláseného používateľa
 const router = useRouter()
 const showCreateModal = ref(false)
 const currentUser = ref(null)
 
-// Function to check if user is logged in
+// Funkcia na kontrolu a načítanie údajov o používateľovi z localStorage
 const checkUser = () => {
   const userStr = localStorage.getItem('user')
   if (userStr) {
@@ -21,21 +22,21 @@ const checkUser = () => {
   }
 }
 
-// Logout function
+// Vymazanie údajov používateľa pri odhlásení a návrat na úvodnú stránku
 const handleLogout = () => {
   localStorage.removeItem('user')
   currentUser.value = null
   router.push('/')
 }
 
-// Check user on mount
+// Spustenie počiatočných kontrol a nastavenie vizuálnej témy pri načítaní
 onMounted(() => {
   checkUser()
   const savedTheme = localStorage.getItem('theme') || 'light'
   document.documentElement.setAttribute('data-theme', savedTheme)
 })
 
-// Provide this function to children so AuthView can call it after login
+// Poskytovanie metód a reaktívnych signálov pre vnorené komponenty
 provide('updateUser', checkUser)
 const refreshSignal = ref(0)
 const triggerRefresh = () => { refreshSignal.value++ }
@@ -46,28 +47,29 @@ provide('triggerRefresh', triggerRefresh)
 <template>
   <header>
     <div class="wrapper">
+      <!-- Hlavná navigačná lišta s podmieneným zobrazením prvkov -->
       <nav>
         <RouterLink to="/">Home</RouterLink>
-        
-        <!-- Show Create Quiz only if logged in -->
+
+        <!-- Akcia na otvorenie tvorcu kvízov prístupná len prihláseným -->
         <a v-if="currentUser" href="#" @click.prevent="showCreateModal = true">Create Quiz</a>
-        
-        <!-- Show Profile only if logged in -->
+
         <RouterLink v-if="currentUser" to="/profile">Profile</RouterLink>
         <RouterLink v-if="currentUser" to="/settings">Settings</RouterLink>
         <RouterLink to="/stats">Statistics</RouterLink>
 
-        <!-- Show Login only if NOT logged in -->
+        <!-- Prepínanie medzi odkazom na Login a informáciou o používateľovi s Logoutom -->
         <RouterLink v-if="!currentUser" to="/login" style="color: #8b5cf6;">Login</RouterLink>
-        
-        <!-- Show Logout if logged in -->
+
         <a v-else href="#" @click.prevent="handleLogout" style="color: #ef4444;">Logout ({{ currentUser.username }})</a>
       </nav>
     </div>
   </header>
 
+  <!-- Dynamický výstup aktuálnej stránky na základe routingu -->
   <RouterView />
 
+  <!-- Globálne modálne okno pre vytváranie nových kvízov -->
   <QuizCreatorModal
       v-if="showCreateModal"
       @close="showCreateModal = false"
@@ -76,14 +78,13 @@ provide('triggerRefresh', triggerRefresh)
 </template>
 
 <style scoped>
-/* ... existing styles ... */
+/* Štýlovanie fixnej hlavičky v hornej časti obrazovky */
 header {
   line-height: 1.5;
   max-height: 100vh;
   background-color: var(--header-bg);
   padding: 1rem;
   border-bottom: 1px solid var(--color-border);
-  /* FIXED NAVBAR LOGIC */
   position: sticky;
   top: 0;
   z-index: 100;
@@ -96,7 +97,7 @@ nav {
   text-align: center;
 }
 
-
+/* Vizuálne oddelenie odkazov v navigácii */
 nav a {
   display: inline-block;
   padding: 0 1rem;
@@ -110,8 +111,9 @@ nav a:first-of-type {
   border: 0;
 }
 
+/* Zvýraznenie aktívnej cesty v menu */
 nav a.router-link-exact-active {
-  color: #42b883; /* Vue Green */
+  color: #42b883;
   font-weight: bold;
 }
 

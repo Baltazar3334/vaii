@@ -1,6 +1,7 @@
 
-/* Globálna paleta farieb */
+/* Globálna paleta farieb a definícia dizajnového systému */
 :root {
+    /* Základné farebné konštanty */
     --vt-c-white: #ffffff;
     --vt-c-white-soft: #f8f8f8;
     --vt-c-black: #181818;
@@ -9,7 +10,7 @@
     --vt-c-divider-light: rgba(60, 60, 60, 0.12);
     --vt-c-divider-dark: rgba(84, 84, 84, 0.48);
 
-    /* Predvolená Svetlá téma */
+    /* Predvolená konfigurácia pre Svetlú tému */
     --color-background: var(--vt-c-white);
     --color-background-soft: var(--vt-c-white-soft);
     --color-text: var(--vt-c-indigo);
@@ -18,7 +19,7 @@
     --header-bg: #f8f9fa;
 }
 
-/* Tmavá téma - aktivuje sa cez [data-theme='dark'] */
+/* Redefinícia premenných pre Tmavú tému */
 [data-theme='dark'] {
     --color-background: var(--vt-c-black);
     --color-background-soft: var(--vt-c-black-soft);
@@ -28,17 +29,18 @@
     --header-bg: #1a1a1a;
 }
 
-/* Globálne resety */
+/* Globálne resety a nastavenia box-modelu */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     font-weight: normal;
 }
 
+/* Základné nastavenie tela dokumentu a typografie */
 body {
     min-height: 100vh;
     color: var(--color-text);
-    background-color: var(--color-background); /* Použitie premennej */
+    background-color: var(--color-background);
     transition: color 0.3s, background-color 0.3s;
     line-height: 1.6;
     font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -48,12 +50,13 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Oprava pre header v App.vue, aby tiež menil farbu */
+/* Spoločné štýly pre hlavičku naprieč aplikáciou */
 header {
     background-color: var(--header-bg) !important;
     border-bottom: 1px solid var(--color-border) !important;
 }
 
+/* Globálne nastavenie farby odkazov v navigácii */
 nav a {
     color: var(--color-text) !important;
 }
